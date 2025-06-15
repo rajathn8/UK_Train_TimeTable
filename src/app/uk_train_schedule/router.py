@@ -18,21 +18,24 @@ def get_engine():
     finally:
         engine.dispose(close=True)
 
+
 def get_db():
     with get_engine() as engine:
-        SessionLocal = sqlalchemy.orm.sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        SessionLocal = sqlalchemy.orm.sessionmaker(
+            autocommit=False, autoflush=False, bind=engine
+        )
         db = SessionLocal()
         try:
             yield db
         finally:
             db.close()
 
+
 @router.post("/", response_model=JourneyResponse)
-def journey(
-    req: JourneyRequest,
-    db: Session = Depends(get_db)
-):
-    journey, arrival = find_earliest_journey(db, req.station_codes, req.start_time, req.max_wait)
+def journey(req: JourneyRequest, db: Session = Depends(get_db)):
+    journey, arrival = find_earliest_journey(
+        db, req.station_codes, req.start_time, req.max_wait
+    )
     if not journey:
         raise HTTPException(status_code=404, detail=arrival)
     return JourneyResponse(journey=journey, arrival_time=arrival)
