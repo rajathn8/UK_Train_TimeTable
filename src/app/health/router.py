@@ -8,7 +8,7 @@ import platform
 import sys
 import os
 
-from health import HealthResponse
+from app.health.schema import HealthResponse
 
 router = APIRouter(prefix="/v1/health", tags=["health"])
 
