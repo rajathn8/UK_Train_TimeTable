@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "uk-train-timetable"
+version = "0.1.0"
+description = "UK Train Timetable project"
+authors = ["Rajath Rao Web_soltZ <rajathn8@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.0"
+uvicorn = "^0.29.0"
+sqlalchemy = "^2.0.30"
+httpx = "^0.27.0"
+python-dotenv = "^1.0.1"
+pydantic = "^2.7.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.1"
+flake8 = "^7.0.0"
+black = "^25.1.0"
+isort = "^5.13.2"
+mypy = "^1.10.0"
+coverage = "^7.5.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
