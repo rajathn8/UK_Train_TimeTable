@@ -9,8 +9,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    app_id: str = "643703ab"
-    app_key: str = "4e8e9ed71a593771d1bf5c4cd0e70274"
+    app_id: str = "uk_train_schedule"
+    app_key: str = "your_api_key_here"  # Replace with your actual API key
     db_url: str = "sqlite:///train_schedule.db"
     env: str = "DEV"
 
