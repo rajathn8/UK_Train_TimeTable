@@ -21,7 +21,6 @@ jobs:
       - name: Lint and format all code (including tests)
         run: poetry run autoflake --in-place --remove-all-unused-imports --recursive . && poetry run black .
       - name: Lint with flake8
-        continue-on-error: true
         run: poetry run flake8 src/ --config .flake8
 
   test:

@@ -48,6 +48,6 @@ def health_check() -> HealthResponse:
         )
         logger.debug(f"HealthResponse: {resp}")
         return resp
-    except Exception as exc:
+    except Exception:
         logger.exception("Health check failed.")
         raise
