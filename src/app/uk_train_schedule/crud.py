@@ -2,6 +2,7 @@ from .models import TimetableEntry
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 
 def add_timetable_entry(
@@ -14,6 +15,7 @@ def add_timetable_entry(
 ) -> TimetableEntry:
     """
     Add a new timetable entry for a train between two stations.
+    Prevents duplicate entries for the same service and departure time.
     """
     entry = TimetableEntry(
         service_id=service_id,
@@ -22,10 +24,24 @@ def add_timetable_entry(
         aimed_departure_time=aimed_departure_time,
         aimed_arrival_time=aimed_arrival_time,
     )
-    db.add(entry)
-    db.commit()
-    db.refresh(entry)
-    return entry
+    try:
+        db.add(entry)
+        db.commit()
+        db.refresh(entry)
+        return entry
+    except IntegrityError:
+        db.rollback()
+        # Optionally, fetch and return the existing entry
+        return (
+            db.query(TimetableEntry)
+            .filter_by(
+                service_id=service_id,
+                station_from=station_from,
+                station_to=station_to,
+                aimed_departure_time=aimed_departure_time,
+            )
+            .first()
+        )
 
 
 def get_timetable_entries(
