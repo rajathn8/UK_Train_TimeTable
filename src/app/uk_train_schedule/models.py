@@ -5,6 +5,7 @@ Defines TimetableEntry and related utilities.
 
 import logging
 from datetime import datetime
+import logging
 
 from sqlalchemy import Column, DateTime, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base

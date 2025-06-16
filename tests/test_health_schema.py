@@ -1,6 +1,9 @@
 import logging
 
 from app.health.schema import HealthResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
