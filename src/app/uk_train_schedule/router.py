@@ -6,6 +6,7 @@ from database.session import get_db
 
 router = APIRouter(prefix="/v1/journey", tags=["journey"])
 
+
 # Note: This is a POST endpoint because the request body contains a list of station codes and other parameters.
 # Using POST allows us to accept complex input as JSON, which is not practical with GET query parameters.
 @router.post("/", response_model=JourneyResponse, status_code=200)
