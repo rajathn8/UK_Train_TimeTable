@@ -5,7 +5,7 @@ from typing import List
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .models import TimetableEntry
+from .models import TimetableEntry, truncate_to_minute
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,8 @@ def post_timetable_entry(
     Add a new timetable entry for a train between two stations.
     Prevents duplicate entries for the same service and departure time.
     """
+    aimed_departure_time = truncate_to_minute(aimed_departure_time)
+    aimed_arrival_time = truncate_to_minute(aimed_arrival_time)
     entry = TimetableEntry(
         service_id=service_id,
         station_from=station_from,
@@ -53,6 +55,7 @@ def get_timetable_entries(
     """
     Get all timetable entries for a route after a given time, ordered by departure.
     """
+    after_time = truncate_to_minute(after_time)
     logger.info(
         f"Fetching timetable entries: {station_from}->{station_to} after {after_time}"
     )

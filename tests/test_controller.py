@@ -1,15 +1,17 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import status
 
 from app.uk_train_schedule import controller
+from app.uk_train_schedule.models import TimetableEntry, truncate_to_minute
 
 
 @pytest.fixture
 def db():
-    return MagicMock()
+    db = MagicMock()
+    return db
 
 
 def test_parse_time():
@@ -66,3 +68,32 @@ def test_find_earliest_journey_no_trains(db):
                         db, ["AAA", "BBB"], datetime.now().isoformat(), 10
                     )
                 assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_fetch_and_store_timetable_truncates_minute(db):
+    with patch("app.uk_train_schedule.controller._timetable_cache_hit") as cache_hit, \
+         patch("app.uk_train_schedule.controller._fetch_timetable_from_api") as fetch_api, \
+         patch("app.uk_train_schedule.controller._store_timetable_entries") as store_entries:
+        cache_hit.return_value = None
+        fetch_api.return_value = {"date": "2025-06-16", "departures": {"all": []}}
+        dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
+        controller.fetch_and_store_timetable(db, "AAA", "BBB", dt.isoformat(), 30)
+        args, _ = fetch_api.call_args
+        assert args[2].second == 0
+        assert args[2].microsecond == 0
+
+
+def test_find_earliest_journey_truncates_minute(db):
+    with patch("app.uk_train_schedule.controller.get_timetable_entries") as get_entries, \
+         patch("app.uk_train_schedule.controller.fetch_and_store_timetable") as fetch_store:
+        dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
+        entry = TimetableEntry(
+            service_id="svc1",
+            station_from="AAA",
+            station_to="BBB",
+            aimed_departure_time=truncate_to_minute(dt),
+            aimed_arrival_time=truncate_to_minute(dt + timedelta(minutes=10)),
+        )
+        get_entries.return_value = [entry]
+        arrival = controller.find_earliest_journey(db, ["AAA", "BBB"], dt.isoformat(), 30)
+        assert ":00" in arrival  # seconds are zero

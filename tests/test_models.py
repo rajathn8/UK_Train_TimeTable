@@ -1,6 +1,8 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
+from app.uk_train_schedule.models import TimetableEntry, truncate_to_minute
 from datetime import datetime
-
-from app.uk_train_schedule.models import TimetableEntry
 
 
 def test_timetable_entry_instantiation():
@@ -16,3 +18,15 @@ def test_timetable_entry_instantiation():
     assert entry.station_to == "BBB"
     assert entry.aimed_departure_time.hour == 10
     assert entry.aimed_arrival_time.hour == 11
+    assert entry.aimed_departure_time.second == 0
+    assert entry.aimed_departure_time.microsecond == 0
+    assert entry.aimed_arrival_time.second == 0
+    assert entry.aimed_arrival_time.microsecond == 0
+
+
+def test_truncate_to_minute():
+    dt = datetime(2025, 6, 16, 10, 5, 42, 123456)
+    truncated = truncate_to_minute(dt)
+    assert truncated.second == 0
+    assert truncated.microsecond == 0
+    assert truncated.minute == 5

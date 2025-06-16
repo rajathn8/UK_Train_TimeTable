@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.settings import settings
 
 from .crud import get_timetable_entries, post_timetable_entry
-from .models import TimetableEntry
+from .models import TimetableEntry, truncate_to_minute
 
 logger = logging.getLogger(__name__)
 
@@ -178,9 +178,7 @@ def fetch_and_store_timetable(
         TransportAPIException: If the API call fails or returns an error status.
     """
     try:
-        window_start = datetime.fromisoformat(starting_time).replace(
-            second=0, microsecond=0
-        )
+        window_start = truncate_to_minute(datetime.fromisoformat(starting_time))
         window_end = window_start + timedelta(minutes=max_wait)
         cache_entry = _timetable_cache_hit(
             db, station_from, station_to, window_start, window_end
@@ -222,7 +220,7 @@ def find_earliest_journey(
         f"Finding earliest journey for {station_codes} from {start_time} with "
         f"max_wait {max_wait}"
     )
-    current_time = datetime.fromisoformat(start_time)
+    current_time = truncate_to_minute(datetime.fromisoformat(start_time))
     for station_from, station_to in zip(station_codes, station_codes[1:]):
         entries = get_timetable_entries(db, station_from, station_to, current_time)
         if not entries:
