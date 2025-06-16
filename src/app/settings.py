@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 from pydantic_settings import BaseSettings
 
-logger = logging.getLogger(__name__)
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -33,6 +33,6 @@ try:
     from app.uk_train_schedule.models import create_all_tables
 
     create_all_tables(settings.db_url)
-    logger.info("Database tables checked/created on startup.")
+    logging.info("Database tables checked/created on startup.")
 except Exception as e:
-    logger.error(f"Failed to create tables on startup: {e}")
+    logging.error(f"Failed to create tables on startup: {e}")
