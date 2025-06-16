@@ -14,6 +14,8 @@ from .models import TimetableEntry, truncate_to_minute
 
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+
 
 def post_timetable_entry(
     db: Session,

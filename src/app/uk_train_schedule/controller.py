@@ -18,6 +18,8 @@ from .models import TimetableEntry, truncate_to_minute
 
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+
 TRANSPORT_API_URL = (
     "https://transportapi.com/v3/uk/train/station_timetables/{station_from}.json"
 )
