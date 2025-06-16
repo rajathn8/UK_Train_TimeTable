@@ -10,14 +10,12 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter
 
-from app.health.schema import HealthResponse
 from app.health.exceptions import HealthCheckException
+from app.health.schema import HealthResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/health", tags=["health"])
-
-
 
 
 @router.get(

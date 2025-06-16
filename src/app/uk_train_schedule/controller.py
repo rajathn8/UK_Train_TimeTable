@@ -12,8 +12,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.settings import settings
-from .crud import get_earliest_timetable_entry, post_timetable_entry
-from .models import truncate_to_minute
+from app.uk_train_schedule.crud import (
+    get_earliest_timetable_entry,
+    post_timetable_entry,
+)
+from app.uk_train_schedule.models import truncate_to_minute
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +27,7 @@ TRANSPORT_API_URL = (
 
 # Custom exception for TransportAPI errors
 class TransportAPIException(HTTPException):
-    """
-    Custom exception for TransportAPI failures with HTTP status code.
-    Args:
-        detail (str): Error detail message
-        status_code (int): HTTP status code (default: 502)
-    """
+    """Exception for TransportAPI errors."""
 
     def __init__(self, detail: str, status_code: int = status.HTTP_502_BAD_GATEWAY):
         super().__init__(status_code=status_code, detail=detail)
@@ -154,7 +152,6 @@ def _fetch_timetable_from_api(
             status_code=status.HTTP_502_BAD_GATEWAY,
         ) from exc
     except TransportAPIException:
-        # Do not wrap our own exception
         raise
     except Exception as exc:
         logger.error(
@@ -220,50 +217,32 @@ def _store_timetable_entries(
         )
 
 
-def fetch_and_store_timetable(
+def fetch_or_store_timetable(
     db: Session, station_from: str, station_to: str, starting_time: str, max_wait: int
-) -> None:
+):
     """
     Fetch and cache timetable data for a given station pair and time window.
-    If a cached entry exists, do nothing. Otherwise, fetch from the API and store new entries.
-    Args:
-        db (Session): SQLAlchemy session
-        station_from (str): Departure station code
-        station_to (str): Arrival station code
-        starting_time (str): Start time in ISO 8601
-        max_wait (int): Maximum wait time in minutes
-    Raises:
-        TransportAPIException: If the API call fails or returns an error status.
+    If a cached entry exists, return it. Otherwise, fetch from the API, store, and return the new entry.
     """
-    try:
-        window_start = truncate_to_minute(datetime.fromisoformat(starting_time))
-        window_end = window_start + timedelta(minutes=max_wait)
-        cache_entry = _timetable_cache_hit(
-            db, station_from, station_to, window_start, window_end
-        )
-        if cache_entry:
-            logger.info(
-                f"Cache hit for {station_from}->{station_to} in window "
-                f"{window_start} to {window_end}"
-            )
-            return
-
+    window_start = truncate_to_minute(datetime.fromisoformat(starting_time))
+    window_end = window_start + timedelta(minutes=max_wait)
+    cache_entry = _timetable_cache_hit(
+        db, station_from, station_to, window_start, window_end
+    )
+    if cache_entry:
         logger.info(
-            f"Fetching timetable from API for {station_from}->{station_to} at "
-            f"{window_start} for window {max_wait} minutes"
+            f"Cache hit for {station_from}->{station_to} in window {window_start} to {window_end}"
         )
-        data = _fetch_timetable_from_api(station_from, station_to, window_start)
-        _store_timetable_entries(db, data, station_from, station_to)
-        logger.info(
-            f"Stored timetable entries for {station_from}->{station_to} in window "
-            f"{window_start} to {window_end}"
-        )
-    except TransportAPIException as api_exc:
-        logger.error(f"TransportAPIException: {api_exc}")
-        raise
-    except Exception as exc:
-        logger.error(f"Unexpected error for {station_from}->{station_to}: {exc}")
-        return
+        return cache_entry
+    logger.info(
+        f"Fetching timetable from API for {station_from}->{station_to} at {window_start} for window {max_wait} minutes"
+    )
+    data = _fetch_timetable_from_api(station_from, station_to, window_start)
+    _store_timetable_entries(db, data, station_from, station_to)
+    logger.info(
+        f"Stored timetable entries for {station_from}->{station_to} in window {window_start} to {window_end}"
+    )
+    return _timetable_cache_hit(db, station_from, station_to, window_start, window_end)
 
 
 def find_earliest_journey(
@@ -273,50 +252,33 @@ def find_earliest_journey(
     Finds the earliest valid journey for a list of station codes and a start time.
     Returns the arrival time at the final destination as an ISO8601 string.
     Raises TransportAPIException if any leg cannot be completed.
-    Args:
-        db (Session): SQLAlchemy session
-        station_codes (List[str]): List of station codes in journey order
-        start_time (str): Start time in ISO 8601
-        max_wait (int): Maximum wait time in minutes
-    Returns:
-        str: Arrival time at destination (ISO 8601)
     """
     logger.info(
-        f"Finding earliest journey for {station_codes} from {start_time} with "
-        f"max_wait {max_wait}"
+        f"Finding earliest journey for {station_codes} from {start_time} with max_wait {max_wait}"
     )
     current_time = truncate_to_minute(datetime.fromisoformat(start_time))
     for station_from, station_to in zip(station_codes, station_codes[1:]):
-        entry = get_earliest_timetable_entry(db, station_from, station_to, current_time)
-        if not entry:
-            fetch_and_store_timetable(
-                db, station_from, station_to, current_time.isoformat(), max_wait
-            )
-            entry = get_earliest_timetable_entry(
-                db, station_from, station_to, current_time
-            )
+        entry = fetch_or_store_timetable(
+            db, station_from, station_to, current_time.isoformat(), max_wait
+        )
         if not entry:
             logger.warning(
-                f"No trains found for {station_from} to {station_to} after "
-                f"{current_time}"
+                f"No trains found for {station_from} to {station_to} after {current_time}"
             )
             raise TransportAPIException(
                 detail=(
-                    f"No trains found for {station_from} to {station_to} after "
-                    f"{current_time}"
+                    f"No trains found for {station_from} to {station_to} after {current_time}"
                 ),
                 status_code=status.HTTP_404_NOT_FOUND,
             )
         wait_time = (entry.aimed_departure_time - current_time).total_seconds() / 60
         if wait_time > max_wait:
             logger.warning(
-                f"Wait time at {station_from} exceeds max_wait: "
-                f"{wait_time:.0f} > {max_wait}"
+                f"Wait time at {station_from} exceeds max_wait: {wait_time:.0f} > {max_wait}"
             )
             raise TransportAPIException(
                 detail=(
-                    f"Wait time at {station_from} exceeds max_wait "
-                    f"({wait_time:.0f} > {max_wait})"
+                    f"Wait time at {station_from} exceeds max_wait ({wait_time:.0f} > {max_wait})"
                 ),
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
