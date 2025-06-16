@@ -5,7 +5,6 @@ Handles database insertions and queries for train schedules.
 
 import logging
 from datetime import datetime
-from typing import List
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session

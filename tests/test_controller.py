@@ -151,7 +151,8 @@ def test_find_earliest_journey_no_trains(db: Any) -> None:
     logger.info("Testing find_earliest_journey with no trains.")
     db.reset_mock()
     with patch(
-        "app.uk_train_schedule.controller.get_earliest_timetable_entry", return_value=None
+        "app.uk_train_schedule.controller.get_earliest_timetable_entry",
+        return_value=None,
     ):
         with patch.object(controller, "fetch_and_store_timetable"):
             with patch(
