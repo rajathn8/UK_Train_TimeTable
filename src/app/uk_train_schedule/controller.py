@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.settings import settings
 
-from .crud import get_timetable_entries, post_timetable_entry
+from .crud import get_earliest_timetable_entry, post_timetable_entry
 from .models import TimetableEntry, truncate_to_minute
 
 logger = logging.getLogger(__name__)
@@ -59,15 +59,7 @@ def _timetable_cache_hit(
     window_end: datetime,
 ):
     """
-    Returns the first matching TimetableEntry if found, otherwise None.
-    Args:
-        db (Session): SQLAlchemy session
-        station_from (str): Departure station code
-        station_to (str): Arrival station code
-        window_start (datetime): Start of time window
-        window_end (datetime): End of time window
-    Returns:
-        TimetableEntry or None
+    Returns the first matching TimetableEntry if found, otherwise None
     """
     try:
         return (
@@ -123,34 +115,34 @@ def _fetch_timetable_from_api(
     url = TRANSPORT_API_URL.format(station_from=station_from)
     try:
         with httpx.Client() as client:
-            response = client.get(url, params=params, timeout=30)
             try:
+                response = client.get(url, params=params, timeout=30)
                 response.raise_for_status()
+                data = response.json()
+                # Validate response structure
+                if "departures" not in data or "all" not in data.get("departures", {}):
+                    logger.error(f"Malformed response from TransportAPI: {data}")
+                    raise TransportAPIException(
+                        detail="Malformed response from TransportAPI",
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                    )
+                return data
             except httpx.HTTPStatusError as exc:
                 # Try to extract error message from TransportAPI JSON if present
                 try:
-                    error_json = response.json()
+                    error_json = exc.response.json()
                     error_detail = error_json.get("error")
                     if error_detail:
-                        detail = f"TransportAPI returned HTTP {response.status_code}: {error_detail}"
+                        detail = f"TransportAPI returned HTTP {exc.response.status_code}: {error_detail}"
                     else:
-                        detail = f"TransportAPI returned HTTP {response.status_code}: {response.text}"
+                        detail = f"TransportAPI returned HTTP {exc.response.status_code}: {exc.response.text}"
                 except Exception:
-                    detail = f"TransportAPI returned HTTP {response.status_code}: {response.text}"
+                    detail = f"TransportAPI returned HTTP {exc.response.status_code}: {exc.response.text}"
                 logger.error(detail)
                 raise TransportAPIException(
                     detail=detail,
-                    status_code=response.status_code,
+                    status_code=exc.response.status_code,
                 ) from exc
-            data = response.json()
-            # Validate response structure
-            if "departures" not in data or "all" not in data.get("departures", {}):
-                logger.error(f"Malformed response from TransportAPI: {data}")
-                raise TransportAPIException(
-                    detail="Malformed response from TransportAPI",
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                )
-            return data
     except httpx.TimeoutException as exc:
         logger.error(
             f"Timeout fetching timetable for {station_from}->{station_to} at "
@@ -169,6 +161,9 @@ def _fetch_timetable_from_api(
             detail="Request error from TransportAPI",
             status_code=status.HTTP_502_BAD_GATEWAY,
         ) from exc
+    except TransportAPIException:
+        # Do not wrap our own exception
+        raise
     except Exception as exc:
         logger.error(
             f"Unexpected error fetching timetable for {station_from}->{station_to} at "
@@ -300,13 +295,13 @@ def find_earliest_journey(
     )
     current_time = truncate_to_minute(datetime.fromisoformat(start_time))
     for station_from, station_to in zip(station_codes, station_codes[1:]):
-        entries = get_timetable_entries(db, station_from, station_to, current_time)
-        if not entries:
+        entry = get_earliest_timetable_entry(db, station_from, station_to, current_time)
+        if not entry:
             fetch_and_store_timetable(
                 db, station_from, station_to, current_time.isoformat(), max_wait
             )
-            entries = get_timetable_entries(db, station_from, station_to, current_time)
-        if not entries:
+            entry = get_earliest_timetable_entry(db, station_from, station_to, current_time)
+        if not entry:
             logger.warning(
                 f"No trains found for {station_from} to {station_to} after "
                 f"{current_time}"
@@ -318,7 +313,6 @@ def find_earliest_journey(
                 ),
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        entry = entries[0]
         wait_time = (entry.aimed_departure_time - current_time).total_seconds() / 60
         if wait_time > max_wait:
             logger.warning(

@@ -151,12 +151,12 @@ def test_find_earliest_journey_no_trains(db: Any) -> None:
     logger.info("Testing find_earliest_journey with no trains.")
     db.reset_mock()
     with patch(
-        "app.uk_train_schedule.controller.get_timetable_entries", return_value=[]
+        "app.uk_train_schedule.controller.get_earliest_timetable_entry", return_value=None
     ):
         with patch.object(controller, "fetch_and_store_timetable"):
             with patch(
-                "app.uk_train_schedule.controller.get_timetable_entries",
-                return_value=[],
+                "app.uk_train_schedule.controller.get_earliest_timetable_entry",
+                return_value=None,
             ):
                 with pytest.raises(controller.TransportAPIException) as exc:
                     controller.find_earliest_journey(
@@ -188,8 +188,8 @@ def test_find_earliest_journey_truncates_minute(db: Any) -> None:
     """Test find_earliest_journey truncates to minute precision."""
     logger.info("Testing find_earliest_journey truncates minute.")
     with patch(
-        "app.uk_train_schedule.controller.get_timetable_entries"
-    ) as get_entries, patch(
+        "app.uk_train_schedule.controller.get_earliest_timetable_entry"
+    ) as get_entry, patch(
         "app.uk_train_schedule.controller.fetch_and_store_timetable"
     ) as fetch_store:
         dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
@@ -200,7 +200,7 @@ def test_find_earliest_journey_truncates_minute(db: Any) -> None:
             aimed_departure_time=truncate_to_minute(dt),
             aimed_arrival_time=truncate_to_minute(dt + timedelta(minutes=10)),
         )
-        get_entries.return_value = [entry]
+        get_entry.return_value = entry
         arrival = controller.find_earliest_journey(
             db, ["AAA", "BBB"], dt.isoformat(), 30
         )
