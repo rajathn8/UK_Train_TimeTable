@@ -42,19 +42,16 @@ def _timetable_cache_hit(
     Returns the first matching TimetableEntry if found, otherwise None.
     """
     try:
-        return (
-            db.query(TimetableEntry)
-            .filter(
-                TimetableEntry.station_from == station_from,
-                TimetableEntry.station_to == station_to,
-                TimetableEntry.aimed_departure_time >= window_start,
-                TimetableEntry.aimed_departure_time < window_end,
-            )
-            .first()
-        )
+        return db.query(TimetableEntry).filter(
+            TimetableEntry.station_from == station_from,
+            TimetableEntry.station_to == station_to,
+            TimetableEntry.aimed_departure_time >= window_start,
+            TimetableEntry.aimed_departure_time < window_end,
+        ).order_by(TimetableEntry.aimed_departure_time.asc()).first()
     except Exception as exc:
         logger.error(
-            f"Database error during cache check for {station_from}->{station_to} in window {window_start} to {window_end}: {exc}"
+            f"Database error during cache check for {station_from}->{station_to} in window "
+            f"{window_start} to {window_end}: {exc}"
         )
         return None
 
@@ -182,7 +179,8 @@ def fetch_and_store_timetable(
             return
 
         logger.info(
-            f"Fetching timetable from API for {station_from}->{station_to} at {window_start} for window {max_wait} minutes"
+            f"Fetching timetable from API for {station_from}->{station_to} at {window_start} "
+            f"for window {max_wait} minutes"
         )
         data = _fetch_timetable_from_api(station_from, station_to, window_start)
         _store_timetable_entries(db, data, station_from, station_to)
@@ -190,10 +188,14 @@ def fetch_and_store_timetable(
             f"Stored timetable entries for {station_from}->{station_to} in window {window_start} to {window_end}"
         )
     except TransportAPIException as api_exc:
-        logger.error(f"TransportAPIException: {api_exc}")
+        logger.error(
+            f"TransportAPIException: {api_exc}"
+        )
         raise
     except Exception as exc:
-        logger.error(f"Unexpected error for {station_from}->{station_to}: {exc}")
+        logger.error(
+            f"Unexpected error for {station_from}->{station_to}: {exc}"
+        )
         return
 
 
@@ -235,5 +237,7 @@ def find_earliest_journey(
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
         current_time = entry.aimed_arrival_time
-    logger.info(f"Final arrival time: {current_time.isoformat()}")
+    logger.info(
+        f"Final arrival time: {current_time.isoformat()}"
+    )
     return current_time.isoformat()
