@@ -9,7 +9,6 @@ from datetime import datetime
 from sqlalchemy import Column, DateTime, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base
 
-# Base class for all SQLAlchemy models
 Base = declarative_base()
 
 logger = logging.getLogger(__name__)
