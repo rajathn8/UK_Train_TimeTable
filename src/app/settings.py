@@ -8,6 +8,8 @@ logger = logging.getLogger(__name__)
 
 from pydantic_settings import BaseSettings
 
+logger = logging.getLogger(__name__)
+
 
 class Settings(BaseSettings):
     app_id: str = "uk_train_schedule"
