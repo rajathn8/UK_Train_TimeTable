@@ -7,12 +7,12 @@ from .crud import (
     add_timetable_entry,
 )
 from typing import List, Tuple
-import os
 from app.settings import settings
 
 TRANSPORT_API_URL = (
     "https://transportapi.com/v3/uk/train/station_timetables/{station_from}.json"
 )
+
 
 # Helper to parse time strings
 def parse_time(date_str: str, time_str: str) -> datetime:
@@ -27,12 +27,16 @@ def fetch_and_store_timetable(
     window_start = start_dt.replace(minute=0, second=0, microsecond=0)
     window_end = window_start + timedelta(hours=3)
     # Check if we already have timetable entries for this route and window
-    existing_entries = db.query(TimetableEntry).filter(
-        TimetableEntry.station_from == station_from,
-        TimetableEntry.station_to == station_to,
-        TimetableEntry.aimed_departure_time >= window_start,
-        TimetableEntry.aimed_departure_time < window_end
-    ).first()
+    existing_entries = (
+        db.query(TimetableEntry)
+        .filter(
+            TimetableEntry.station_from == station_from,
+            TimetableEntry.station_to == station_to,
+            TimetableEntry.aimed_departure_time >= window_start,
+            TimetableEntry.aimed_departure_time < window_end,
+        )
+        .first()
+    )
     if existing_entries:
         return  # Data already cached for this window, skip API call
     params = dict(
