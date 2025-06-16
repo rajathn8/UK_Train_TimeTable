@@ -33,6 +33,6 @@ try:
     from app.uk_train_schedule.models import create_all_tables
 
     create_all_tables(settings.db_url)
-    logging.info("Database tables checked/created on startup.")
+    logger.info("Database tables checked/created on startup.")
 except Exception as e:
-    logging.error(f"Failed to create tables on startup: {e}")
+    logger.error(f"Failed to create tables on startup: {e}")
