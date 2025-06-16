@@ -2,34 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from .controller import find_earliest_journey
 from .schema import JourneyRequest, JourneyResponse
-import sqlalchemy
-import contextlib
+from database.session import get_db
 
 router = APIRouter(prefix="/v1/journey", tags=["journey"])
-
-
-# Dependency to get DB session
-@contextlib.contextmanager
-def get_engine():
-    from app.settings import settings
-
-    engine = sqlalchemy.create_engine(settings.db_url)
-    try:
-        yield engine
-    finally:
-        engine.dispose(close=True)
-
-
-def get_db():
-    with get_engine() as engine:
-        SessionLocal = sqlalchemy.orm.sessionmaker(
-            autocommit=False, autoflush=False, bind=engine
-        )
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
 
 
 @router.post("/", response_model=JourneyResponse)
