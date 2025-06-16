@@ -1,21 +1,11 @@
-from behave import given, then, when
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../src")))
+from behave import then, when
 from pydantic import ValidationError
 
 from app.uk_train_schedule.schema import JourneyRequest
-
-
-@given(
-    'a JourneyRequest payload with station_codes {codes}, start_time "{start_time}", max_wait {max_wait}'
-)
-def step_given_payload(context, codes, start_time, max_wait):
-    # Parse codes as a list
-    codes = codes.strip("[]").replace('"', "").replace("'", "").split(",")
-    codes = [c.strip() for c in codes if c.strip()]
-    context.payload = {
-        "station_codes": codes,
-        "start_time": start_time,
-        "max_wait": int(max_wait),
-    }
 
 
 @when("I validate the JourneyRequest")
