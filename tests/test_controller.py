@@ -71,9 +71,13 @@ def test_find_earliest_journey_no_trains(db):
 
 
 def test_fetch_and_store_timetable_truncates_minute(db):
-    with patch("app.uk_train_schedule.controller._timetable_cache_hit") as cache_hit, \
-         patch("app.uk_train_schedule.controller._fetch_timetable_from_api") as fetch_api, \
-         patch("app.uk_train_schedule.controller._store_timetable_entries") as store_entries:
+    with patch(
+        "app.uk_train_schedule.controller._timetable_cache_hit"
+    ) as cache_hit, patch(
+        "app.uk_train_schedule.controller._fetch_timetable_from_api"
+    ) as fetch_api, patch(
+        "app.uk_train_schedule.controller._store_timetable_entries"
+    ) as store_entries:
         cache_hit.return_value = None
         fetch_api.return_value = {"date": "2025-06-16", "departures": {"all": []}}
         dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
@@ -84,8 +88,11 @@ def test_fetch_and_store_timetable_truncates_minute(db):
 
 
 def test_find_earliest_journey_truncates_minute(db):
-    with patch("app.uk_train_schedule.controller.get_timetable_entries") as get_entries, \
-         patch("app.uk_train_schedule.controller.fetch_and_store_timetable") as fetch_store:
+    with patch(
+        "app.uk_train_schedule.controller.get_timetable_entries"
+    ) as get_entries, patch(
+        "app.uk_train_schedule.controller.fetch_and_store_timetable"
+    ) as fetch_store:
         dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
         entry = TimetableEntry(
             service_id="svc1",
@@ -95,5 +102,7 @@ def test_find_earliest_journey_truncates_minute(db):
             aimed_arrival_time=truncate_to_minute(dt + timedelta(minutes=10)),
         )
         get_entries.return_value = [entry]
-        arrival = controller.find_earliest_journey(db, ["AAA", "BBB"], dt.isoformat(), 30)
+        arrival = controller.find_earliest_journey(
+            db, ["AAA", "BBB"], dt.isoformat(), 30
+        )
         assert ":00" in arrival  # seconds are zero
