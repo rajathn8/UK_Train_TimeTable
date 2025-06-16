@@ -1,11 +1,11 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database.session import get_db
 
-from .controller import find_earliest_journey
+from .controller import TransportAPIException, find_earliest_journey
 from .schema import JourneyRequest, JourneyResponse
 
 logger = logging.getLogger(__name__)
@@ -18,11 +18,12 @@ router = APIRouter(prefix="/v1/journey", tags=["journey"])
 @router.post("/", response_model=JourneyResponse, status_code=200)
 def journey(req: JourneyRequest, db: Session = Depends(get_db)):
     logger.info(f"Journey endpoint called with: {req}")
-    journey, arrival = find_earliest_journey(
-        db, req.station_codes, req.start_time, req.max_wait
-    )
-    if not journey:
-        logger.warning(f"No journey found for: {req}")
-        raise HTTPException(status_code=404, detail=arrival)
-    logger.info(f"Journey found: {journey}")
-    return JourneyResponse(journey=journey, arrival_time=arrival)
+    try:
+        arrival = find_earliest_journey(
+            db, req.station_codes, req.start_time, req.max_wait
+        )
+        logger.info(f"Journey found, arrival time: {arrival}")
+        return JourneyResponse(arrival_time=arrival)
+    except TransportAPIException as exc:
+        logger.warning(f"Journey planning failed: {exc.detail}")
+        raise exc
