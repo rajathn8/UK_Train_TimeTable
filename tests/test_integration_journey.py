@@ -1,8 +1,10 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 import pytest
 from fastapi.testclient import TestClient
+
 from app.router import app
 
 
@@ -10,7 +12,12 @@ from app.router import app
 def patch_controller(monkeypatch):
     # Patch at the import location used by the FastAPI app
     import app.uk_train_schedule.router as journey_router
-    monkeypatch.setattr(journey_router, "find_earliest_journey", lambda db, codes, start, wait: "2025-06-16T12:00:00")
+
+    monkeypatch.setattr(
+        journey_router,
+        "find_earliest_journey",
+        lambda db, codes, start, wait: "2025-06-16T12:00:00",
+    )
     yield
 
 
@@ -27,10 +34,13 @@ def test_journey_endpoint_valid():
 
 
 def test_journey_endpoint_error(monkeypatch):
-    import app.uk_train_schedule.router as journey_router
     from fastapi import HTTPException
+
+    import app.uk_train_schedule.router as journey_router
+
     def raise_exc(*a, **kw):
         raise HTTPException(status_code=404, detail="No trains found")
+
     monkeypatch.setattr(journey_router, "find_earliest_journey", raise_exc)
     client = TestClient(app)
     payload = {
