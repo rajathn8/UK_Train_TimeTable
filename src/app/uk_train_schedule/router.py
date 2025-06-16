@@ -48,8 +48,12 @@ def journey(req: JourneyRequest, db: Session = Depends(get_db)):
         arrival = find_earliest_journey(
             db, req.station_codes, req.start_time, req.max_wait
         )
-        logger.info(f"Journey found, arrival time: {arrival}")
+        logger.info(
+            f"Journey found, arrival time: {arrival}"
+        )
         return JourneyResponse(arrival_time=arrival)
     except TransportAPIException as exc:
-        logger.warning(f"Journey planning failed: {exc.detail}")
+        logger.warning(
+            f"Journey planning failed: {exc.detail}"
+        )
         raise exc
