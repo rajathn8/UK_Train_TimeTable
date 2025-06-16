@@ -18,8 +18,8 @@ jobs:
         run: pip install poetry
       - name: Install dependencies
         run: poetry install --no-interaction --no-ansi
-      - name: Lint with black
-        run: poetry run black --check src/
+      - name: Lint and format all code (including tests)
+        run: poetry run autoflake --in-place --remove-all-unused-imports --recursive . && poetry run black .
       - name: Lint with flake8
         run: poetry run flake8 src/ --config .flake8
 
