@@ -1,13 +1,11 @@
 import httpx
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy.orm import Session
 from .crud import (
     get_timetable_entries,
     add_timetable_entry,
     add_train_service,
-    add_station,
 )
-from .models import TimetableEntry
 from typing import List, Tuple
 import os
 

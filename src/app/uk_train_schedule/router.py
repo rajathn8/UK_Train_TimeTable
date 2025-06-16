@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 from .controller import find_earliest_journey
 from .schema import JourneyRequest, JourneyResponse
-from .models import Base
 import sqlalchemy
 import contextlib
 
 router = APIRouter(prefix="/v1/journey", tags=["journey"])
+
 
 # Dependency to get DB session
 @contextlib.contextmanager
