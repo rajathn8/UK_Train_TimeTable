@@ -12,11 +12,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.settings import settings
-
 from .crud import get_earliest_timetable_entry, post_timetable_entry
 from .models import truncate_to_minute
-
-logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
