@@ -1,11 +1,14 @@
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
+import logging
 
 import pytest
 from fastapi import status
 
 from app.uk_train_schedule import controller
 from app.uk_train_schedule.models import TimetableEntry, truncate_to_minute
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -15,11 +18,13 @@ def db():
 
 
 def test_parse_time():
+    logger.info("Testing parse_time.")
     dt = controller.parse_time("2025-06-16", "10:00")
     assert dt == datetime(2025, 6, 16, 10, 0)
 
 
 def test_timetable_cache_hit_returns_none_on_exception(db):
+    logger.info("Testing _timetable_cache_hit returns None on exception.")
     db.query.side_effect = Exception("fail")
     result = controller._timetable_cache_hit(
         db, "AAA", "BBB", datetime.now(), datetime.now()
@@ -28,6 +33,7 @@ def test_timetable_cache_hit_returns_none_on_exception(db):
 
 
 def test_fetch_timetable_from_api_malformed(monkeypatch):
+    logger.info("Testing _fetch_timetable_from_api with malformed response.")
     class DummyResp:
         def raise_for_status(self):
             pass
@@ -41,11 +47,13 @@ def test_fetch_timetable_from_api_malformed(monkeypatch):
 
 
 def test_store_timetable_entries_handles_no_date(db):
+    logger.info("Testing _store_timetable_entries handles no date.")
     controller._store_timetable_entries(db, {}, "AAA", "BBB")
     db.add.assert_not_called()
 
 
 def test_fetch_and_store_timetable_cache_hit(db):
+    logger.info("Testing fetch_and_store_timetable cache hit.")
     with patch.object(controller, "_timetable_cache_hit", return_value=True):
         controller.fetch_and_store_timetable(
             db, "AAA", "BBB", datetime.now().isoformat(), 10
@@ -54,6 +62,7 @@ def test_fetch_and_store_timetable_cache_hit(db):
 
 
 def test_find_earliest_journey_no_trains(db):
+    logger.info("Testing find_earliest_journey with no trains.")
     db.reset_mock()
     with patch(
         "app.uk_train_schedule.controller.get_timetable_entries", return_value=[]
@@ -71,6 +80,7 @@ def test_find_earliest_journey_no_trains(db):
 
 
 def test_fetch_and_store_timetable_truncates_minute(db):
+    logger.info("Testing fetch_and_store_timetable truncates minute.")
     with patch(
         "app.uk_train_schedule.controller._timetable_cache_hit"
     ) as cache_hit, patch(
@@ -88,6 +98,7 @@ def test_fetch_and_store_timetable_truncates_minute(db):
 
 
 def test_find_earliest_journey_truncates_minute(db):
+    logger.info("Testing find_earliest_journey truncates minute.")
     with patch(
         "app.uk_train_schedule.controller.get_timetable_entries"
     ) as get_entries, patch(

@@ -14,8 +14,12 @@ def get_engine():
     logger.info(f"Database engine created for {settings.db_url}")
     try:
         yield engine
+    except Exception as e:
+        logger.error(f"Database engine context error: {e}")
+        raise
     finally:
         engine.dispose(close=True)
+        logger.info("Database engine disposed.")
 
 
 def get_db():
@@ -25,7 +29,11 @@ def get_db():
         )
         db = SessionLocal()
         try:
+            logger.info("Database session started.")
             yield db
+        except Exception as e:
+            logger.error(f"Database session error: {e}")
+            raise
         finally:
             db.close()
-            logger.debug("Database session closed.")
+            logger.info("Database session closed.")
