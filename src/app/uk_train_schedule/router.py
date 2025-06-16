@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
+from database.session import get_db
+
 from .controller import find_earliest_journey
 from .schema import JourneyRequest, JourneyResponse
-from database.session import get_db
 
 router = APIRouter(prefix="/v1/journey", tags=["journey"])
 

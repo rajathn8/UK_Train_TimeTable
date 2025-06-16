@@ -1,5 +1,7 @@
-import sqlalchemy
 import contextlib
+
+import sqlalchemy
+
 from app.settings import settings
 
 

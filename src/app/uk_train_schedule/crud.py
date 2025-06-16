@@ -1,8 +1,10 @@
-from .models import TimetableEntry
-from sqlalchemy.orm import Session
-from typing import List
 from datetime import datetime
+from typing import List
+
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from .models import TimetableEntry
 
 
 def add_timetable_entry(

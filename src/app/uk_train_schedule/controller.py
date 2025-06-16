@@ -1,13 +1,13 @@
-import httpx
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from .models import TimetableEntry
-from .crud import (
-    get_timetable_entries,
-    add_timetable_entry,
-)
 from typing import List, Tuple
+
+import httpx
+from sqlalchemy.orm import Session
+
 from app.settings import settings
+
+from .crud import add_timetable_entry, get_timetable_entries
+from .models import TimetableEntry
 
 TRANSPORT_API_URL = (
     "https://transportapi.com/v3/uk/train/station_timetables/{station_from}.json"
