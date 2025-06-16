@@ -17,14 +17,17 @@ router = APIRouter(prefix="/v1/health", tags=["health"])
 @router.get(
     "/",
     summary="Health Check",
-    description="Returns API status, server time, version, app metadata, and environment info.",
+    description=(
+        "Returns API status, server time, version, app metadata, and environment info."
+    ),
     status_code=200,
     response_model=HealthResponse,
 )
 def health_check() -> HealthResponse:
     """
     Health check endpoint for API v1.
-    Returns a HealthResponse object with status, current server time, API version, app name, description, Python version, OS info, and environment.
+    Returns a HealthResponse object with status, current server time, API version,
+    app name, description, Python version, OS info, and environment.
     """
     return HealthResponse(
         status="ok",
