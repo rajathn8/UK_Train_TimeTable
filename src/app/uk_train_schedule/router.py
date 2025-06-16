@@ -43,7 +43,6 @@ def journey(req: JourneyRequest, db: Session = Depends(get_db)):
     Raises:
         TransportAPIException: If journey planning fails
     """
-    logger.info(f"Journey endpoint called with: {req}")
     try:
         arrival = find_earliest_journey(
             db, req.station_codes, req.start_time, req.max_wait
