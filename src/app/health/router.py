@@ -1,6 +1,7 @@
 """
-Health check endpoint for the UK Train Timetable API (v1).
+Production-grade health check endpoint for the UK Train Timetable API (v1).
 Provides API status, server time, version, app metadata, and environment info.
+Follows best practices for logging, error handling, and OpenAPI documentation.
 """
 
 import logging
@@ -21,17 +22,30 @@ router = APIRouter(prefix="/health", tags=["health"])
 @router.get(
     "/",
     summary="Health Check",
-    description=(
-        "Returns API status, server time, version, app metadata, and environment info."
-    ),
+    description="""
+    Returns API status, server time, version, app metadata, and environment info.
+    - **status**: API status (ok/error)
+    - **time**: Current server time in ISO 8601 UTC
+    - **api_version**: API version string
+    - **app_name**: Application name
+    - **description**: Endpoint description
+    - **python_version**: Python version
+    - **os**: Operating system
+    - **os_version**: OS version
+    - **server**: Hostname
+    - **author**: Author info
+    - **env**: Environment (DEV/PROD/etc)
+    """,
     status_code=200,
     response_model=HealthResponse,
+    tags=["health"],
 )
 def health_check() -> HealthResponse:
     """
-    Health check endpoint for API v1.
+    Production-grade health check endpoint for API v1.
     Returns a HealthResponse object with status, current server time, API version,
     app name, description, Python version, OS info, and environment.
+    Logs request and response for observability. Raises and logs errors if any occur.
     """
     logger.info("Health check endpoint called.")
     try:
@@ -53,6 +67,6 @@ def health_check() -> HealthResponse:
         )
         logger.debug(f"HealthResponse: {resp}")
         return resp
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
+    except Exception as exc:
+        logger.exception("Health check failed.")
         raise

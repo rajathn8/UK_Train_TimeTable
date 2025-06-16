@@ -1,3 +1,9 @@
+"""
+Production-grade tests for CRUD operations in UK Train Timetable application.
+Covers insertions, duplicates, and queries for TimetableEntry.
+Follows best practices for logging, patching, and assertions.
+"""
+
 import logging
 from datetime import datetime
 from unittest.mock import MagicMock
@@ -13,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def db():
+    """Fixture for a mock database session."""
     db = MagicMock()
     db.query().filter_by().first.return_value = TimetableEntry(
         service_id="svc1",
@@ -25,6 +32,7 @@ def db():
 
 
 def test_post_timetable_entry_new(db):
+    """Test post_timetable_entry for new entry."""
     logger.info("Testing post_timetable_entry for new entry.")
     db.query().filter_by().first.return_value = None
     db.add.side_effect = None
@@ -41,6 +49,7 @@ def test_post_timetable_entry_new(db):
 
 
 def test_post_timetable_entry_duplicate(db):
+    """Test post_timetable_entry for duplicate entry."""
     logger.info("Testing post_timetable_entry for duplicate entry.")
     db.add.side_effect = IntegrityError("mock", "mock", "mock")
     db.commit.side_effect = IntegrityError("mock", "mock", "mock")
@@ -63,6 +72,7 @@ def test_post_timetable_entry_duplicate(db):
 
 
 def test_get_timetable_entries(db):
+    """Test get_timetable_entries returns correct entries."""
     logger.info("Testing get_timetable_entries.")
     db.query().filter().order_by().all.return_value = [
         TimetableEntry(

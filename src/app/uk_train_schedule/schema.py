@@ -1,3 +1,8 @@
+"""
+Pydantic schemas for journey planning API.
+Includes request and response models with validation.
+"""
+
 import logging
 import re
 from datetime import datetime
@@ -11,9 +16,10 @@ logger = logging.getLogger(__name__)
 class JourneyRequest(BaseModel):
     """
     Request schema for journey planning.
-    - station_codes: List of station codes (in order) for the journey.
-    - start_time: ISO 8601 formatted start time (e.g., '2025-06-04T07:00:00+01:00').
-    - max_wait: Maximum wait time (in minutes) allowed at any station.
+    Args:
+        station_codes (List[str]): List of three-letter station codes in journey order.
+        start_time (str): Journey start time in ISO 8601 format.
+        max_wait (int): Maximum wait time at any station in minutes.
     """
 
     station_codes: List[str] = Field(
@@ -61,7 +67,8 @@ class JourneyRequest(BaseModel):
 class JourneyResponse(BaseModel):
     """
     Response schema for journey planning.
-    - arrival_time: Final arrival time at the destination station (ISO 8601 format).
+    Args:
+        arrival_time (Optional[str]): Final arrival time at the destination station (ISO 8601 format).
     """
 
     arrival_time: Optional[str] = Field(

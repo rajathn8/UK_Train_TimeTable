@@ -1,3 +1,8 @@
+"""
+Controller logic for journey planning and TransportAPI integration.
+Handles fetching, caching, and planning journeys using database and external API.
+"""
+
 import logging
 from datetime import datetime, timedelta
 from typing import List
@@ -20,7 +25,12 @@ TRANSPORT_API_URL = (
 
 # Custom exception for TransportAPI errors
 class TransportAPIException(HTTPException):
-    """Custom exception for TransportAPI failures with HTTP status code."""
+    """
+    Custom exception for TransportAPI failures with HTTP status code.
+    Args:
+        detail (str): Error detail message
+        status_code (int): HTTP status code (default: 502)
+    """
 
     def __init__(self, detail: str, status_code: int = status.HTTP_502_BAD_GATEWAY):
         super().__init__(status_code=status_code, detail=detail)
@@ -28,6 +38,14 @@ class TransportAPIException(HTTPException):
 
 # Helper to parse time strings
 def parse_time(date_str: str, time_str: str) -> datetime:
+    """
+    Parse date and time strings into a datetime object.
+    Args:
+        date_str (str): Date string (YYYY-MM-DD)
+        time_str (str): Time string (HH:MM)
+    Returns:
+        datetime: Combined datetime object
+    """
     return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
 
 
@@ -40,6 +58,14 @@ def _timetable_cache_hit(
 ):
     """
     Returns the first matching TimetableEntry if found, otherwise None.
+    Args:
+        db (Session): SQLAlchemy session
+        station_from (str): Departure station code
+        station_to (str): Arrival station code
+        window_start (datetime): Start of time window
+        window_end (datetime): End of time window
+    Returns:
+        TimetableEntry or None
     """
     try:
         return (
@@ -66,7 +92,12 @@ def _fetch_timetable_from_api(
 ) -> dict:
     """
     Fetch timetable data from TransportAPI for the given window.
-
+    Args:
+        station_from (str): Departure station code
+        station_to (str): Arrival station code
+        window_start (datetime): Start of time window (UTC)
+    Returns:
+        dict: API response data
     Raises:
         TransportAPIException: If the API call fails or returns an error status.
     """
@@ -129,8 +160,12 @@ def _store_timetable_entries(
 ) -> None:
     """
     Store timetable entries from API data into the database.
-
     Logs errors and skips malformed entries, but continues processing others.
+    Args:
+        db (Session): SQLAlchemy session
+        data (dict): API response data
+        station_from (str): Departure station code
+        station_to (str): Arrival station code
     """
     stored_count = 0
     try:
@@ -178,9 +213,13 @@ def fetch_and_store_timetable(
 ) -> None:
     """
     Fetch and cache timetable data for a given station pair and time window.
-    If a cached entry exists, do nothing. Otherwise, fetch from the API and store new
-    entries.
-
+    If a cached entry exists, do nothing. Otherwise, fetch from the API and store new entries.
+    Args:
+        db (Session): SQLAlchemy session
+        station_from (str): Departure station code
+        station_to (str): Arrival station code
+        starting_time (str): Start time in ISO 8601
+        max_wait (int): Maximum wait time in minutes
     Raises:
         TransportAPIException: If the API call fails or returns an error status.
     """
@@ -222,6 +261,13 @@ def find_earliest_journey(
     Finds the earliest valid journey for a list of station codes and a start time.
     Returns the arrival time at the final destination as an ISO8601 string.
     Raises TransportAPIException if any leg cannot be completed.
+    Args:
+        db (Session): SQLAlchemy session
+        station_codes (List[str]): List of station codes in journey order
+        start_time (str): Start time in ISO 8601
+        max_wait (int): Maximum wait time in minutes
+    Returns:
+        str: Arrival time at destination (ISO 8601)
     """
     logger.info(
         f"Finding earliest journey for {station_codes} from {start_time} with "
