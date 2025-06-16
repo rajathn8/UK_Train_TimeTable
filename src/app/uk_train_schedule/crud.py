@@ -1,19 +1,7 @@
-from .models import Station, TimetableEntry
+from .models import TimetableEntry
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import List
 from datetime import datetime
-
-
-def get_station_by_code(db: Session, code: str) -> Optional[Station]:
-    return db.query(Station).filter(Station.code == code).first()
-
-
-def add_station(db: Session, code: str, name: str) -> Station:
-    station = Station(code=code, name=name)
-    db.add(station)
-    db.commit()
-    db.refresh(station)
-    return station
 
 
 def add_timetable_entry(
@@ -24,6 +12,9 @@ def add_timetable_entry(
     aimed_departure_time: datetime,
     aimed_arrival_time: datetime,
 ) -> TimetableEntry:
+    """
+    Add a new timetable entry for a train between two stations.
+    """
     entry = TimetableEntry(
         service_id=service_id,
         station_from=station_from,
@@ -40,6 +31,9 @@ def add_timetable_entry(
 def get_timetable_entries(
     db: Session, station_from: str, station_to: str, after_time: datetime
 ) -> List[TimetableEntry]:
+    """
+    Get all timetable entries for a route after a given time, ordered by departure.
+    """
     return (
         db.query(TimetableEntry)
         .filter(

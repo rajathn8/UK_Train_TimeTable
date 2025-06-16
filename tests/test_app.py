@@ -1,6 +1,6 @@
-import pytest
 from fastapi.testclient import TestClient
 from app.router import app
+
 
 def test_root():
     client = TestClient(app)
@@ -8,6 +8,7 @@ def test_root():
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
     assert "UK Train Timetable API" in response.json()["message"]
+
 
 def test_health():
     client = TestClient(app)
