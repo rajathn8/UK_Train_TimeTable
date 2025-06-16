@@ -1,5 +1,6 @@
 from app.settings import settings
 
+
 def test_settings_loaded():
     assert hasattr(settings, "app_id")
     assert hasattr(settings, "app_key")

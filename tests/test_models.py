@@ -1,5 +1,7 @@
-from app.uk_train_schedule.models import TimetableEntry
 from datetime import datetime
+
+from app.uk_train_schedule.models import TimetableEntry
+
 
 def test_timetable_entry_instantiation():
     entry = TimetableEntry(
