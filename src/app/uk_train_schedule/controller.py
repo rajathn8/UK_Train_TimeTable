@@ -128,8 +128,12 @@ def _fetch_timetable_from_api(
             data = response.json()
             # Validate response structure
             if "departures" not in data or "all" not in data.get("departures", {}):
-                logger.error(f"Malformed response from TransportAPI: {data}")
-                raise TransportAPIException("Malformed response from TransportAPI")
+                logger.error(
+                    f"Malformed response from TransportAPI: {data}"
+                )
+                raise TransportAPIException(
+                    "Malformed response from TransportAPI"
+                )
             return data
     except httpx.TimeoutException as exc:
         logger.error(
