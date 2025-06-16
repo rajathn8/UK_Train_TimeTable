@@ -6,9 +6,10 @@ Follows best practices for logging, patching, and assertions.
 
 import logging
 from datetime import datetime, timedelta
+from typing import Any, Generator
 from unittest.mock import MagicMock, patch
-from typing import Generator, Any
 
+import httpx
 import pytest
 from fastapi import status
 
@@ -54,8 +55,78 @@ def test_fetch_timetable_from_api_malformed(monkeypatch: Any) -> None:
             return {"departures": {}}
 
     with patch("httpx.Client.get", return_value=DummyResp()):
-        with pytest.raises(controller.TransportAPIException):
+        with pytest.raises(controller.TransportAPIException) as exc:
             controller._fetch_timetable_from_api("AAA", "BBB", datetime.now())
+        assert exc.value.status_code == 502
+        assert "Malformed response" in str(exc.value.detail)
+
+
+def test_fetch_timetable_from_api_timeout(monkeypatch: Any) -> None:
+    """Test _fetch_timetable_from_api raises 504 on timeout."""
+    logger.info("Testing _fetch_timetable_from_api timeout.")
+
+    class DummyTimeout(Exception):
+        pass
+
+    def raise_timeout(*args, **kwargs):
+        raise httpx.TimeoutException("timeout")
+
+    monkeypatch.setattr(httpx.Client, "get", raise_timeout)
+    with pytest.raises(controller.TransportAPIException) as exc:
+        controller._fetch_timetable_from_api("AAA", "BBB", datetime.now())
+    assert exc.value.status_code == 504
+    assert "Timeout" in str(exc.value.detail)
+
+
+def test_fetch_timetable_from_api_request_error(monkeypatch: Any) -> None:
+    """Test _fetch_timetable_from_api raises 502 on request error."""
+    logger.info("Testing _fetch_timetable_from_api request error.")
+
+    def raise_request_error(*args, **kwargs):
+        raise httpx.RequestError("request error", request=None)
+
+    monkeypatch.setattr(httpx.Client, "get", raise_request_error)
+    with pytest.raises(controller.TransportAPIException) as exc:
+        controller._fetch_timetable_from_api("AAA", "BBB", datetime.now())
+    assert exc.value.status_code == 502
+    assert "Request error" in str(exc.value.detail)
+
+
+def test_fetch_timetable_from_api_http_status_error(monkeypatch: Any) -> None:
+    """Test _fetch_timetable_from_api raises with actual HTTP status code."""
+    logger.info("Testing _fetch_timetable_from_api HTTP status error.")
+
+    class DummyResponse:
+        status_code = 403
+        text = "Forbidden"
+
+    class DummyHTTPStatusError(httpx.HTTPStatusError):
+        def __init__(self):
+            super().__init__("error", request=None, response=DummyResponse())
+            self.response = DummyResponse()
+
+    def raise_http_status_error(*args, **kwargs):
+        raise DummyHTTPStatusError()
+
+    monkeypatch.setattr(httpx.Client, "get", raise_http_status_error)
+    with pytest.raises(controller.TransportAPIException) as exc:
+        controller._fetch_timetable_from_api("AAA", "BBB", datetime.now())
+    assert exc.value.status_code == 403
+    assert "TransportAPI returned HTTP 403" in str(exc.value.detail)
+
+
+def test_fetch_timetable_from_api_unexpected_error(monkeypatch: Any) -> None:
+    """Test _fetch_timetable_from_api raises 500 on unexpected error."""
+    logger.info("Testing _fetch_timetable_from_api unexpected error.")
+
+    def raise_unexpected(*args, **kwargs):
+        raise Exception("unexpected")
+
+    monkeypatch.setattr(httpx.Client, "get", raise_unexpected)
+    with pytest.raises(controller.TransportAPIException) as exc:
+        controller._fetch_timetable_from_api("AAA", "BBB", datetime.now())
+    assert exc.value.status_code == 500
+    assert "Unexpected error" in str(exc.value.detail)
 
 
 def test_store_timetable_entries_handles_no_date(db: Any) -> None:
