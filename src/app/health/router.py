@@ -2,7 +2,8 @@
 Health check endpoint for the UK Train Timetable API (v1).
 Provides API status, server time, version, app metadata, and environment info.
 """
-from fastapi import APIRouter, Response
+
+from fastapi import APIRouter
 from datetime import datetime
 import platform
 import sys
