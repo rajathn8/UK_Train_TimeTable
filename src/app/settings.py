@@ -1,5 +1,4 @@
 import logging
-
 from pydantic_settings import BaseSettings
 
 logging.basicConfig(
@@ -7,8 +6,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
