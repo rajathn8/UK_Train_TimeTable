@@ -12,7 +12,9 @@ router = APIRouter(prefix="/v1/journey", tags=["journey"])
 # Dependency to get DB session
 @contextlib.contextmanager
 def get_engine():
-    engine = sqlalchemy.create_engine("sqlite:///train_schedule.db")
+    from app.settings import settings
+
+    engine = sqlalchemy.create_engine(settings.db_url)
     try:
         yield engine
     finally:
