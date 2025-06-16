@@ -1,5 +1,6 @@
 from app.health.schema import HealthResponse
 
+
 def test_health_response_fields():
     resp = HealthResponse(
         status="ok",

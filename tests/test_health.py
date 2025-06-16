@@ -1,6 +1,7 @@
 from app.health.router import health_check
 from app.health.schema import HealthResponse
 
+
 def test_health_check_returns_healthresponse():
     resp = health_check()
     assert isinstance(resp, HealthResponse)
