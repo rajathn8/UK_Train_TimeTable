@@ -1,4 +1,5 @@
-from sqlalchemy import Column, DateTime, Integer, String
+from datetime import datetime
+from sqlalchemy import Column, DateTime, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -28,6 +29,21 @@ class TimetableEntry(Base):
     aimed_arrival_time = Column(
         DateTime, nullable=False, doc="Scheduled arrival time in UTC."
     )
+
+
+def create_all_tables(db_url=None):
+    """Create all tables in the database if they do not exist."""
+    if db_url is None:
+        from app.settings import settings
+
+        db_url = settings.db_url
+    engine = create_engine(db_url)
+    Base.metadata.create_all(engine)
+
+
+def truncate_to_minute(dt: datetime) -> datetime:
+    """Return a copy of dt with seconds and microseconds set to zero."""
+    return dt.replace(second=0, microsecond=0)
 
 
 """

@@ -1,15 +1,21 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
+import pytest
 from fastapi.testclient import TestClient
-
 from app.router import app
 
 
-def test_journey_endpoint_valid(monkeypatch):
+@pytest.fixture(autouse=True)
+def patch_controller(monkeypatch):
+    # Patch at the import location used by the FastAPI app
+    import app.uk_train_schedule.router as journey_router
+    monkeypatch.setattr(journey_router, "find_earliest_journey", lambda db, codes, start, wait: "2025-06-16T12:00:00")
+    yield
+
+
+def test_journey_endpoint_valid():
     client = TestClient(app)
-    # Patch controller to avoid real DB/API
-    monkeypatch.setattr(
-        "app.uk_train_schedule.controller.find_earliest_journey",
-        lambda db, codes, start, wait: "2025-06-16T12:00:00",
-    )
     payload = {
         "station_codes": ["AAA", "BBB"],
         "start_time": "2025-06-16T10:00:00",
@@ -21,16 +27,12 @@ def test_journey_endpoint_valid(monkeypatch):
 
 
 def test_journey_endpoint_error(monkeypatch):
-    client = TestClient(app)
+    import app.uk_train_schedule.router as journey_router
     from fastapi import HTTPException
-
     def raise_exc(*a, **kw):
         raise HTTPException(status_code=404, detail="No trains found")
-
-    monkeypatch.setattr(
-        "app.uk_train_schedule.controller.find_earliest_journey",
-        raise_exc,
-    )
+    monkeypatch.setattr(journey_router, "find_earliest_journey", raise_exc)
+    client = TestClient(app)
     payload = {
         "station_codes": ["AAA", "BBB"],
         "start_time": "2025-06-16T10:00:00",
