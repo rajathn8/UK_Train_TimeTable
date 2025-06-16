@@ -124,37 +124,60 @@ def _fetch_timetable_from_api(
     try:
         with httpx.Client() as client:
             response = client.get(url, params=params, timeout=30)
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                # Try to extract error message from TransportAPI JSON if present
+                try:
+                    error_json = response.json()
+                    error_detail = error_json.get("error")
+                    if error_detail:
+                        detail = f"TransportAPI returned HTTP {response.status_code}: {error_detail}"
+                    else:
+                        detail = f"TransportAPI returned HTTP {response.status_code}: {response.text}"
+                except Exception:
+                    detail = f"TransportAPI returned HTTP {response.status_code}: {response.text}"
+                logger.error(detail)
+                raise TransportAPIException(
+                    detail=detail,
+                    status_code=response.status_code,
+                ) from exc
             data = response.json()
             # Validate response structure
             if "departures" not in data or "all" not in data.get("departures", {}):
                 logger.error(f"Malformed response from TransportAPI: {data}")
-                raise TransportAPIException("Malformed response from TransportAPI")
+                raise TransportAPIException(
+                    detail="Malformed response from TransportAPI",
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                )
             return data
     except httpx.TimeoutException as exc:
         logger.error(
             f"Timeout fetching timetable for {station_from}->{station_to} at "
             f"{window_start}: {exc}"
         )
-        raise TransportAPIException("Timeout from TransportAPI") from exc
+        raise TransportAPIException(
+            detail="Timeout from TransportAPI",
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+        ) from exc
     except httpx.RequestError as exc:
         logger.error(
             f"Request error fetching timetable for {station_from}->{station_to} at "
             f"{window_start}: {exc}"
         )
-        raise TransportAPIException("Request error from TransportAPI") from exc
-    except httpx.HTTPStatusError as exc:
-        logger.error(
-            f"HTTP error fetching timetable for {station_from}->{station_to} at "
-            f"{window_start}: {exc}"
-        )
-        raise TransportAPIException("HTTP Error from TransportAPI") from exc
+        raise TransportAPIException(
+            detail="Request error from TransportAPI",
+            status_code=status.HTTP_502_BAD_GATEWAY,
+        ) from exc
     except Exception as exc:
         logger.error(
             f"Unexpected error fetching timetable for {station_from}->{station_to} at "
             f"{window_start}: {exc}"
         )
-        raise TransportAPIException("Unexpected error from TransportAPI") from exc
+        raise TransportAPIException(
+            detail="Unexpected error from TransportAPI",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ) from exc
 
 
 def _store_timetable_entries(
@@ -285,12 +308,12 @@ def find_earliest_journey(
             entries = get_timetable_entries(db, station_from, station_to, current_time)
         if not entries:
             logger.warning(
-                f"No trains found from {station_from} to {station_to} after "
+                f"No trains found for {station_from} to {station_to} after "
                 f"{current_time}"
             )
             raise TransportAPIException(
                 detail=(
-                    f"No trains found from {station_from} to {station_to} after "
+                    f"No trains found for {station_from} to {station_to} after "
                     f"{current_time}"
                 ),
                 status_code=status.HTTP_404_NOT_FOUND,
