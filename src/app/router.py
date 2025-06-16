@@ -13,5 +13,5 @@ app.include_router(journey_router)
 def root():
     return {
         "status": "ok",
-        "message": "UK Train Timetable API. See /v1/health for health check.",
+        "message": "UK Train Timetable API. See /health for health check.",
     }
