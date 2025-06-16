@@ -4,7 +4,7 @@ Provides API status, server time, version, app metadata, and environment info.
 """
 
 from fastapi import APIRouter
-from datetime import datetime
+from datetime import datetime, timezone
 import platform
 import sys
 import os
@@ -28,7 +28,7 @@ def health_check() -> HealthResponse:
     """
     return HealthResponse(
         status="ok",
-        time=datetime.now(datetime.timezone.utc)
+        time=datetime.now(timezone.utc)
         .replace(microsecond=0)
         .isoformat()
         .replace("+00:00", "Z"),
