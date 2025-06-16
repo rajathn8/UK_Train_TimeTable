@@ -3,6 +3,7 @@ Health check endpoint for the UK Train Timetable API (v1).
 Provides API status, server time, version, app metadata, and environment info.
 """
 
+import logging
 import os
 import platform
 import sys
@@ -11,6 +12,8 @@ from datetime import datetime, timezone
 from fastapi import APIRouter
 
 from app.health.schema import HealthResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -30,6 +33,7 @@ def health_check() -> HealthResponse:
     Returns a HealthResponse object with status, current server time, API version,
     app name, description, Python version, OS info, and environment.
     """
+    logger.info("Health check endpoint called.")
     return HealthResponse(
         status="ok",
         time=datetime.now(timezone.utc)

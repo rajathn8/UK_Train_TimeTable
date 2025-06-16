@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import List, Tuple
 
@@ -8,6 +9,8 @@ from app.settings import settings
 
 from .crud import add_timetable_entry, get_timetable_entries
 from .models import TimetableEntry
+
+logger = logging.getLogger(__name__)
 
 TRANSPORT_API_URL = (
     "https://transportapi.com/v3/uk/train/station_timetables/{station_from}.json"
@@ -38,7 +41,13 @@ def fetch_and_store_timetable(
         .first()
     )
     if existing_entries:
+        logger.info(
+            f"Cache hit for {station_from}->{station_to} in window {window_start} to {window_end}"
+        )
         return  # Data already cached for this window, skip API call
+    logger.info(
+        f"Fetching timetable from API for {station_from}->{station_to} at {window_start}"
+    )
     params = dict(
         app_id=settings.app_id,
         app_key=settings.app_key,
@@ -68,12 +77,18 @@ def fetch_and_store_timetable(
                         aimed_departure_time,
                         aimed_arrival_time,
                     )
+    logger.info(
+        f"Stored timetable entries for {station_from}->{station_to} in window {window_start} to {window_end}"
+    )
 
 
 # Main journey logic
 def find_earliest_journey(
     db: Session, station_codes: List[str], start_time: str, max_wait: int
 ) -> Tuple[List[dict], str]:
+    logger.info(
+        f"Finding earliest journey for {station_codes} from {start_time} with max_wait {max_wait}"
+    )
     journey = []
     current_time = datetime.fromisoformat(start_time)
     for i in range(len(station_codes) - 1):
@@ -86,6 +101,9 @@ def find_earliest_journey(
             )
             entries = get_timetable_entries(db, station_from, station_to, current_time)
         if not entries:
+            logger.warning(
+                f"No trains found from {station_from} to {station_to} after {current_time}"
+            )
             return (
                 journey,
                 f"No trains found from {station_from} to {station_to} after {current_time}",
@@ -93,6 +111,9 @@ def find_earliest_journey(
         entry = entries[0]
         wait_time = (entry.aimed_departure_time - current_time).total_seconds() / 60
         if wait_time > max_wait:
+            logger.warning(
+                f"Wait time at {station_from} exceeds max_wait: {wait_time:.0f} > {max_wait}"
+            )
             return (
                 journey,
                 f"Wait time at {station_from} exceeds max_wait ({wait_time:.0f} > {max_wait})",
@@ -107,4 +128,5 @@ def find_earliest_journey(
             }
         )
         current_time = entry.aimed_arrival_time
+    logger.info(f"Journey found: {journey}")
     return journey, journey[-1]["arrival"] if journey else ""

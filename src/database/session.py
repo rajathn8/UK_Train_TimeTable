@@ -1,13 +1,17 @@
 import contextlib
+import logging
 
 import sqlalchemy
 
 from app.settings import settings
 
+logger = logging.getLogger(__name__)
+
 
 @contextlib.contextmanager
 def get_engine():
     engine = sqlalchemy.create_engine(settings.db_url)
+    logger.info(f"Database engine created for {settings.db_url}")
     try:
         yield engine
     finally:
@@ -24,3 +28,4 @@ def get_db():
             yield db
         finally:
             db.close()
+            logger.debug("Database session closed.")
