@@ -34,13 +34,15 @@ def post_timetable_entry(
         db.commit()
         db.refresh(entry)
         logger.info(
-            f"Added timetable entry: {service_id} - {station_from}->{station_to} |{aimed_departure_time}|"
+            f"Added timetable entry: {service_id} - {station_from}->{station_to} |"
+            f"{aimed_departure_time}|"
         )
         return entry
     except IntegrityError:
         db.rollback()
         logger.warning(
-            f"Duplicate timetable entry: {service_id} - {station_from}->{station_to} |{aimed_departure_time}|"
+            f"Duplicate timetable entry: {service_id} - {station_from}->{station_to} |"
+            f"{aimed_departure_time}|"
         )
         return db.query(TimetableEntry).filter_by(service_id=service_id).first()
 
