@@ -1,13 +1,14 @@
 import logging
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List
 
 import httpx
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.settings import settings
 
-from .crud import add_timetable_entry, get_timetable_entries
+from .crud import get_timetable_entries, post_timetable_entry
 from .models import TimetableEntry
 
 logger = logging.getLogger(__name__)
@@ -17,96 +18,211 @@ TRANSPORT_API_URL = (
 )
 
 
+# Custom exception for TransportAPI errors
+class TransportAPIException(HTTPException):
+    """Custom exception for TransportAPI failures with HTTP status code."""
+
+    def __init__(self, detail: str, status_code: int = status.HTTP_502_BAD_GATEWAY):
+        super().__init__(status_code=status_code, detail=detail)
+
+
 # Helper to parse time strings
 def parse_time(date_str: str, time_str: str) -> datetime:
     return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
 
 
-def fetch_and_store_timetable(
-    db: Session, station_from: str, station_to: str, starting_time: str
-) -> None:
-    # Use a 3-hour window for caching
-    start_dt = datetime.fromisoformat(starting_time)
-    window_start = start_dt.replace(minute=0, second=0, microsecond=0)
-    window_end = window_start + timedelta(hours=3)
-    # Check if we already have timetable entries for this route and window
-    existing_entries = (
-        db.query(TimetableEntry)
-        .filter(
-            TimetableEntry.station_from == station_from,
-            TimetableEntry.station_to == station_to,
-            TimetableEntry.aimed_departure_time >= window_start,
-            TimetableEntry.aimed_departure_time < window_end,
+def _timetable_cache_hit(
+    db: Session,
+    station_from: str,
+    station_to: str,
+    window_start: datetime,
+    window_end: datetime,
+):
+    """
+    Returns the first matching TimetableEntry if found, otherwise None.
+    """
+    try:
+        return (
+            db.query(TimetableEntry)
+            .filter(
+                TimetableEntry.station_from == station_from,
+                TimetableEntry.station_to == station_to,
+                TimetableEntry.aimed_departure_time >= window_start,
+                TimetableEntry.aimed_departure_time < window_end,
+            )
+            .first()
         )
-        .first()
-    )
-    if existing_entries:
-        logger.info(
-            f"Cache hit for {station_from}->{station_to} in window {window_start} to {window_end}"
+    except Exception as exc:
+        logger.error(
+            f"Database error during cache check for {station_from}->{station_to} in window {window_start} to {window_end}: {exc}"
         )
-        return  # Data already cached for this window, skip API call
-    logger.info(
-        f"Fetching timetable from API for {station_from}->{station_to} at {window_start}"
-    )
-    params = dict(
-        app_id=settings.app_id,
-        app_key=settings.app_key,
-        live=False,
-        station_detail="calling_at",
-        train_status="passenger",
-        datetime=window_start.isoformat(),
-        limit=1000,
-        calling_at=station_to,
-    )
+        return None
+
+
+def _fetch_timetable_from_api(
+    station_from: str, station_to: str, window_start: datetime
+) -> dict:
+    """
+    Fetch timetable data from TransportAPI for the given window.
+
+    Raises:
+        TransportAPIException: If the API call fails or returns an error status.
+    """
+    params = {
+        "app_id": settings.app_id,
+        "app_key": settings.app_key,
+        "live": False,
+        "station_detail": "calling_at",
+        "train_status": "passenger",
+        "datetime": window_start.isoformat(),
+        "limit": 1000,
+        "calling_at": station_to,
+    }
     url = TRANSPORT_API_URL.format(station_from=station_from)
-    with httpx.Client() as client:
-        response = client.get(url, params=params)
-        data = response.json()
-        date = data["date"]
-        for dep in data["departures"]["all"]:
-            service_id = dep["service"]
-            aimed_departure_time = parse_time(date, dep["aimed_departure_time"])
-            for call in dep["station_detail"]["calling_at"]:
-                if call["station_code"] == station_to:
-                    aimed_arrival_time = parse_time(date, call["aimed_arrival_time"])
-                    add_timetable_entry(
-                        db,
-                        service_id,
-                        station_from,
-                        station_to,
-                        aimed_departure_time,
-                        aimed_arrival_time,
-                    )
-    logger.info(
-        f"Stored timetable entries for {station_from}->{station_to} in window {window_start} to {window_end}"
-    )
+    try:
+        with httpx.Client() as client:
+            response = client.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            # Validate response structure
+            if "departures" not in data or "all" not in data.get("departures", {}):
+                logger.error(f"Malformed response from TransportAPI: {data}")
+                raise TransportAPIException("Malformed response from TransportAPI")
+            return data
+    except httpx.TimeoutException as exc:
+        logger.error(
+            f"Timeout fetching timetable for {station_from}->{station_to} at {window_start}: {exc}"
+        )
+        raise TransportAPIException("Timeout from TransportAPI") from exc
+    except httpx.RequestError as exc:
+        logger.error(
+            f"Request error fetching timetable for {station_from}->{station_to} at {window_start}: {exc}"
+        )
+        raise TransportAPIException("Request error from TransportAPI") from exc
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            f"HTTP error fetching timetable for {station_from}->{station_to} at {window_start}: {exc}"
+        )
+        raise TransportAPIException("HTTP Error from TransportAPI") from exc
+    except Exception as exc:
+        logger.error(
+            f"Unexpected error fetching timetable for {station_from}->{station_to} at {window_start}: {exc}"
+        )
+        raise TransportAPIException("Unexpected error from TransportAPI") from exc
 
 
-# Main journey logic
+def _store_timetable_entries(
+    db: Session, data: dict, station_from: str, station_to: str
+) -> None:
+    """
+    Store timetable entries from API data into the database.
+
+    Logs errors and skips malformed entries, but continues processing others.
+    """
+    stored_count = 0
+    try:
+        date = data.get("date")
+        if not date:
+            logger.error("No 'date' in API response.")
+            return
+        departures = data.get("departures", {}).get("all", [])
+        for dep in departures:
+            try:
+                service_id = dep.get("service")
+                aimed_departure_time = parse_time(date, dep.get("aimed_departure_time"))
+                for call in dep.get("station_detail", {}).get("calling_at", []):
+                    if call.get("station_code") == station_to:
+                        aimed_arrival_time = parse_time(
+                            date, call.get("aimed_arrival_time")
+                        )
+                        post_timetable_entry(
+                            db,
+                            service_id,
+                            station_from,
+                            station_to,
+                            aimed_departure_time,
+                            aimed_arrival_time,
+                        )
+                        stored_count += 1
+            except Exception as entry_exc:
+                logger.error(
+                    f"Error storing entry for service_id={dep.get('service')}: {entry_exc}"
+                )
+        logger.info(
+            f"Stored {stored_count} timetable entries for {station_from}->{station_to}"
+        )
+    except Exception as exception:
+        logger.error(
+            f"Error processing timetable entries for {station_from}->{station_to}: {exception}"
+        )
+
+
+def fetch_and_store_timetable(
+    db: Session, station_from: str, station_to: str, starting_time: str, max_wait: int
+) -> None:
+    """
+    Fetch and cache timetable data for a given station pair and time window.
+    If a cached entry exists, do nothing. Otherwise, fetch from the API and store new entries.
+
+    Raises:
+        TransportAPIException: If the API call fails or returns an error status.
+    """
+    try:
+        window_start = datetime.fromisoformat(starting_time).replace(
+            second=0, microsecond=0
+        )
+        window_end = window_start + timedelta(minutes=max_wait)
+        cache_entry = _timetable_cache_hit(
+            db, station_from, station_to, window_start, window_end
+        )
+        if cache_entry:
+            logger.info(
+                f"Cache hit for {station_from}->{station_to} in window {window_start} to {window_end}"
+            )
+            return
+
+        logger.info(
+            f"Fetching timetable from API for {station_from}->{station_to} at {window_start} for window {max_wait} minutes"
+        )
+        data = _fetch_timetable_from_api(station_from, station_to, window_start)
+        _store_timetable_entries(db, data, station_from, station_to)
+        logger.info(
+            f"Stored timetable entries for {station_from}->{station_to} in window {window_start} to {window_end}"
+        )
+    except TransportAPIException as api_exc:
+        logger.error(f"TransportAPIException: {api_exc}")
+        raise
+    except Exception as exc:
+        logger.error(f"Unexpected error for {station_from}->{station_to}: {exc}")
+        return
+
+
 def find_earliest_journey(
     db: Session, station_codes: List[str], start_time: str, max_wait: int
-) -> Tuple[List[dict], str]:
+) -> str:
+    """
+    Finds the earliest valid journey for a list of station codes and a start time.
+    Returns the arrival time at the final destination as an ISO8601 string.
+    Raises TransportAPIException if any leg cannot be completed.
+    """
     logger.info(
         f"Finding earliest journey for {station_codes} from {start_time} with max_wait {max_wait}"
     )
-    journey = []
     current_time = datetime.fromisoformat(start_time)
-    for i in range(len(station_codes) - 1):
-        station_from = station_codes[i]
-        station_to = station_codes[i + 1]
+    for station_from, station_to in zip(station_codes, station_codes[1:]):
         entries = get_timetable_entries(db, station_from, station_to, current_time)
         if not entries:
             fetch_and_store_timetable(
-                db, station_from, station_to, current_time.isoformat()
+                db, station_from, station_to, current_time.isoformat(), max_wait
             )
             entries = get_timetable_entries(db, station_from, station_to, current_time)
         if not entries:
             logger.warning(
                 f"No trains found from {station_from} to {station_to} after {current_time}"
             )
-            return (
-                journey,
-                f"No trains found from {station_from} to {station_to} after {current_time}",
+            raise TransportAPIException(
+                detail=f"No trains found from {station_from} to {station_to} after {current_time}",
+                status_code=status.HTTP_404_NOT_FOUND,
             )
         entry = entries[0]
         wait_time = (entry.aimed_departure_time - current_time).total_seconds() / 60
@@ -114,19 +230,10 @@ def find_earliest_journey(
             logger.warning(
                 f"Wait time at {station_from} exceeds max_wait: {wait_time:.0f} > {max_wait}"
             )
-            return (
-                journey,
-                f"Wait time at {station_from} exceeds max_wait ({wait_time:.0f} > {max_wait})",
+            raise TransportAPIException(
+                detail=f"Wait time at {station_from} exceeds max_wait ({wait_time:.0f} > {max_wait})",
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
-        journey.append(
-            {
-                "from": station_from,
-                "to": station_to,
-                "departure": entry.aimed_departure_time.isoformat(),
-                "arrival": entry.aimed_arrival_time.isoformat(),
-                "service_id": entry.service_id,
-            }
-        )
         current_time = entry.aimed_arrival_time
-    logger.info(f"Journey found: {journey}")
-    return journey, journey[-1]["arrival"] if journey else ""
+    logger.info(f"Final arrival time: {current_time.isoformat()}")
+    return current_time.isoformat()

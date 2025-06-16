@@ -10,7 +10,7 @@ from .models import TimetableEntry
 logger = logging.getLogger(__name__)
 
 
-def add_timetable_entry(
+def post_timetable_entry(
     db: Session,
     service_id: str,
     station_from: str,
@@ -34,24 +34,15 @@ def add_timetable_entry(
         db.commit()
         db.refresh(entry)
         logger.info(
-            f"Added timetable entry: {service_id} {station_from}->{station_to} {aimed_departure_time}"
+            f"Added timetable entry: {service_id} - {station_from}->{station_to} |{aimed_departure_time}|"
         )
         return entry
     except IntegrityError:
         db.rollback()
         logger.warning(
-            f"Duplicate timetable entry: {service_id} {station_from}->{station_to} {aimed_departure_time}"
+            f"Duplicate timetable entry: {service_id} - {station_from}->{station_to} |{aimed_departure_time}|"
         )
-        return (
-            db.query(TimetableEntry)
-            .filter_by(
-                service_id=service_id,
-                station_from=station_from,
-                station_to=station_to,
-                aimed_departure_time=aimed_departure_time,
-            )
-            .first()
-        )
+        return db.query(TimetableEntry).filter_by(service_id=service_id).first()
 
 
 def get_timetable_entries(

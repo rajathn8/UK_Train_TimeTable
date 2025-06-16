@@ -52,28 +52,12 @@ class JourneyRequest(BaseModel):
         return v
 
 
-class JourneyLeg(BaseModel):
-    """
-    Represents a single leg of the journey between two stations.
-    """
-
-    from_: str = Field(..., alias="from", description="Departure station code.")
-    to: str = Field(..., description="Arrival station code.")
-    departure: str = Field(..., description="Departure time in ISO 8601 format.")
-    arrival: str = Field(..., description="Arrival time in ISO 8601 format.")
-    service_id: str = Field(..., description="Unique train service identifier.")
-
-
 class JourneyResponse(BaseModel):
     """
     Response schema for journey planning.
-    - journey: List of journey legs with details for each segment.
     - arrival_time: Final arrival time at the destination station (ISO 8601 format).
     """
 
-    journey: List[JourneyLeg] = Field(
-        ..., description="List of journey legs with details for each segment."
-    )
     arrival_time: Optional[str] = Field(
         None,
         description="Final arrival time at the destination station (ISO 8601 format).",
