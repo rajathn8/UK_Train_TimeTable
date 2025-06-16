@@ -1,4 +1,5 @@
 import logging
+
 from app.health.router import health_check
 from app.health.schema import HealthResponse
 

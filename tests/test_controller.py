@@ -1,6 +1,6 @@
+import logging
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
-import logging
 
 import pytest
 from fastapi import status
@@ -34,6 +34,7 @@ def test_timetable_cache_hit_returns_none_on_exception(db):
 
 def test_fetch_timetable_from_api_malformed(monkeypatch):
     logger.info("Testing _fetch_timetable_from_api with malformed response.")
+
     class DummyResp:
         def raise_for_status(self):
             pass
