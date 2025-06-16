@@ -11,7 +11,7 @@ import os
 
 from app.health.schema import HealthResponse
 
-router = APIRouter(prefix="/v1/health", tags=["health"])
+router = APIRouter(prefix="/health", tags=["health"])
 
 
 @router.get(

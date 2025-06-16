@@ -33,7 +33,7 @@ A FastAPI-based service to fetch, store, and query UK train timetable data using
    The API will be available at http://localhost:8000
 
 ## API Endpoints
-- `GET /v1/health` — Health check
+- `GET /health` — Health check
 - `POST /v1/journey` — Find earliest journey
   - Request body:
     ```json
