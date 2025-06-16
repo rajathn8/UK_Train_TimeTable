@@ -59,20 +59,15 @@ def _timetable_cache_hit(
     window_end: datetime,
 ):
     """
-    Returns the first matching TimetableEntry if found, otherwise None
+    Returns the first matching TimetableEntry if found, otherwise None.
+    Uses get_earliest_timetable_entry from crud, but restricts to window_end.
     """
     try:
-        return (
-            db.query(TimetableEntry)
-            .filter(
-                TimetableEntry.station_from == station_from,
-                TimetableEntry.station_to == station_to,
-                TimetableEntry.aimed_departure_time >= window_start,
-                TimetableEntry.aimed_departure_time < window_end,
-            )
-            .order_by(TimetableEntry.aimed_departure_time.asc())
-            .first()
-        )
+        # Use the CRUD function, but filter for window_end as well
+        entry = get_earliest_timetable_entry(db, station_from, station_to, window_start)
+        if entry and entry.aimed_departure_time < window_end:
+            return entry
+        return None
     except Exception as exc:
         logger.error(
             f"Database error during cache check for {station_from}->{station_to} in "
