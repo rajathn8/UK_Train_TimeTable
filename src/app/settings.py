@@ -1,4 +1,8 @@
+import logging
+
 from pydantic_settings import BaseSettings
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -15,3 +19,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+logger.info(f"Settings loaded: env={settings.env}, db_url={settings.db_url}")

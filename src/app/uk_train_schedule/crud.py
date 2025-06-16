@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List
 
@@ -5,6 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .models import TimetableEntry
+
+logger = logging.getLogger(__name__)
 
 
 def add_timetable_entry(
@@ -30,10 +33,15 @@ def add_timetable_entry(
         db.add(entry)
         db.commit()
         db.refresh(entry)
+        logger.info(
+            f"Added timetable entry: {service_id} {station_from}->{station_to} {aimed_departure_time}"
+        )
         return entry
     except IntegrityError:
         db.rollback()
-        # Optionally, fetch and return the existing entry
+        logger.warning(
+            f"Duplicate timetable entry: {service_id} {station_from}->{station_to} {aimed_departure_time}"
+        )
         return (
             db.query(TimetableEntry)
             .filter_by(
@@ -52,6 +60,9 @@ def get_timetable_entries(
     """
     Get all timetable entries for a route after a given time, ordered by departure.
     """
+    logger.info(
+        f"Fetching timetable entries: {station_from}->{station_to} after {after_time}"
+    )
     return (
         db.query(TimetableEntry)
         .filter(
