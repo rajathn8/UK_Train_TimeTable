@@ -20,7 +20,7 @@ router = APIRouter(prefix="/health", tags=["health"])
 @router.get(
     "/",
     summary="Health Check",
-    description="Returns API status" "",
+    description="Returns API status",
     status_code=200,
     response_model=HealthResponse,
     tags=["health"],
