@@ -1,13 +1,17 @@
-import os
+import logging
 import sys
+import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
-from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from app.uk_train_schedule.models import TimetableEntry, truncate_to_minute
+from datetime import datetime
 
 
 def test_timetable_entry_instantiation():
+    logger.info("Testing TimetableEntry instantiation.")
     entry = TimetableEntry(
         service_id="svc1",
         station_from="AAA",
@@ -27,6 +31,7 @@ def test_timetable_entry_instantiation():
 
 
 def test_truncate_to_minute():
+    logger.info("Testing truncate_to_minute function.")
     dt = datetime(2025, 6, 16, 10, 5, 42, 123456)
     truncated = truncate_to_minute(dt)
     assert truncated.second == 0

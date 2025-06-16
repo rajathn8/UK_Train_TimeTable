@@ -1,9 +1,12 @@
 from datetime import datetime
+import logging
 
 from sqlalchemy import Column, DateTime, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
+
+logger = logging.getLogger(__name__)
 
 
 class TimetableEntry(Base):
@@ -39,11 +42,14 @@ def create_all_tables(db_url=None):
 
         db_url = settings.db_url
     engine = create_engine(db_url)
+    logger.info(f"Creating all tables in the database: {db_url}")
     Base.metadata.create_all(engine)
+    logger.info("All tables created or already exist.")
 
 
 def truncate_to_minute(dt: datetime) -> datetime:
     """Return a copy of dt with seconds and microseconds set to zero."""
+    logger.debug(f"Truncating datetime to minute: {dt}")
     return dt.replace(second=0, microsecond=0)
 
 

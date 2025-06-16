@@ -6,6 +6,9 @@ from sqlalchemy.exc import IntegrityError
 
 from app.uk_train_schedule import crud
 from app.uk_train_schedule.models import TimetableEntry
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -22,6 +25,7 @@ def db():
 
 
 def test_post_timetable_entry_new(db):
+    logger.info("Testing post_timetable_entry for new entry.")
     db.query().filter_by().first.return_value = None
     db.add.side_effect = None
     dt_dep = datetime(2025, 6, 16, 10, 0, 42, 123456)
@@ -37,6 +41,7 @@ def test_post_timetable_entry_new(db):
 
 
 def test_post_timetable_entry_duplicate(db):
+    logger.info("Testing post_timetable_entry for duplicate entry.")
     db.add.side_effect = IntegrityError("mock", "mock", "mock")
     db.commit.side_effect = IntegrityError("mock", "mock", "mock")
     db.query().filter_by().first.return_value = TimetableEntry(
@@ -58,6 +63,7 @@ def test_post_timetable_entry_duplicate(db):
 
 
 def test_get_timetable_entries(db):
+    logger.info("Testing get_timetable_entries.")
     db.query().filter().order_by().all.return_value = [
         TimetableEntry(
             service_id="svc1",

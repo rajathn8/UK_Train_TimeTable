@@ -1,9 +1,14 @@
+import logging
+
 from fastapi.testclient import TestClient
 
 from app.router import app
 
+logger = logging.getLogger(__name__)
+
 
 def test_root():
+    logger.info("Testing root endpoint.")
     client = TestClient(app)
     response = client.get("/")
     assert response.status_code == 200
@@ -12,6 +17,7 @@ def test_root():
 
 
 def test_health():
+    logger.info("Testing health endpoint.")
     client = TestClient(app)
     response = client.get("/health/")
     assert response.status_code == 200

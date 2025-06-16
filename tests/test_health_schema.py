@@ -1,7 +1,11 @@
 from app.health.schema import HealthResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def test_health_response_fields():
+    logger.info("Testing HealthResponse fields.")
     resp = HealthResponse(
         status="ok",
         time="2025-06-16T10:00:00Z",
