@@ -27,16 +27,7 @@ def post_timetable_entry(
 ) -> TimetableEntry:
     """
     Add a new timetable entry for a train between two stations.
-    Prevents duplicate entries for the same service and departure time.
-    Args:
-        db (Session): SQLAlchemy session
-        service_id (str): Train service ID
-        station_from (str): Departure station code
-        station_to (str): Arrival station code
-        aimed_departure_time (datetime): Scheduled departure time
-        aimed_arrival_time (datetime): Scheduled arrival time
-    Returns:
-        TimetableEntry: The created or existing entry
+    Returns the entry object (even if duplicate).
     """
     aimed_departure_time = truncate_to_minute(aimed_departure_time)
     aimed_arrival_time = truncate_to_minute(aimed_arrival_time)
@@ -62,25 +53,37 @@ def post_timetable_entry(
             f"Duplicate timetable entry: {service_id} - {station_from}->{station_to} |"
             f"{aimed_departure_time}|"
         )
-        return db.query(TimetableEntry).filter_by(service_id=service_id).first()
+        # Try to fetch the existing entry
+        existing = (
+            db.query(TimetableEntry)
+            .filter_by(
+                service_id=service_id,
+                station_from=station_from,
+                station_to=station_to,
+                aimed_departure_time=aimed_departure_time,
+                aimed_arrival_time=aimed_arrival_time,
+            )
+            .first()
+        )
+        return existing
 
 
-def get_timetable_entries(
+def get_earliest_timetable_entry(
     db: Session, station_from: str, station_to: str, after_time: datetime
-) -> List[TimetableEntry]:
+) -> TimetableEntry | None:
     """
-    Get all timetable entries for a route after a given time, ordered by departure.
+    Get the earliest timetable entry for a route after a given time, ordered by departure.
     Args:
         db (Session): SQLAlchemy session
         station_from (str): Departure station code
         station_to (str): Arrival station code
         after_time (datetime): Only entries after this time
     Returns:
-        List[TimetableEntry]: List of timetable entries
+        TimetableEntry | None: The earliest timetable entry or None if not found
     """
     after_time = truncate_to_minute(after_time)
     logger.info(
-        f"Fetching timetable entries: {station_from}->{station_to} after {after_time}"
+        f"Fetching earliest timetable entry: {station_from}->{station_to} after {after_time}"
     )
     return (
         db.query(TimetableEntry)
@@ -90,5 +93,5 @@ def get_timetable_entries(
             TimetableEntry.aimed_departure_time >= after_time,
         )
         .order_by(TimetableEntry.aimed_departure_time)
-        .all()
+        .first()
     )

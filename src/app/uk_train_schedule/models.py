@@ -1,5 +1,4 @@
 """
-Database models for UK Train Timetable application.
 Defines TimetableEntry and related utilities.
 """
 
@@ -28,7 +27,7 @@ class TimetableEntry(Base):
     """
 
     __tablename__ = "timetable_entries"
-    id = Column(Integer, primary_key=True, doc="Primary key.")
+    id = Column(Integer, primary_key=True, doc="Primary key")
     service_id = Column(
         String,
         unique=True,
@@ -38,18 +37,16 @@ class TimetableEntry(Base):
     station_from = Column(String, nullable=False, doc="Departure station code")
     station_to = Column(String, nullable=False, doc="Arrival station code")
     aimed_departure_time = Column(
-        DateTime, nullable=False, doc="Scheduled departure time in UTC."
+        DateTime, nullable=False, doc="Scheduled departure time in UTC"
     )
     aimed_arrival_time = Column(
-        DateTime, nullable=False, doc="Scheduled arrival time in UTC."
+        DateTime, nullable=False, doc="Scheduled arrival time in UTC"
     )
 
 
 def create_all_tables(db_url=None):
     """
-    Create all tables in the database if they do not exist.
-    Args:
-        db_url (str, optional): Database URL. Uses settings.db_url if None.
+    Create all tables in the database if they do not exist
     """
     if db_url is None:
         from app.settings import settings
@@ -64,10 +61,6 @@ def create_all_tables(db_url=None):
 def truncate_to_minute(dt: datetime) -> datetime:
     """
     Return a copy of dt with seconds and microseconds set to zero.
-    Args:
-        dt (datetime): Input datetime
-    Returns:
-        datetime: Truncated datetime
     """
     logger.debug(f"Truncating datetime to minute: {dt}")
     return dt.replace(second=0, microsecond=0)

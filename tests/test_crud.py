@@ -88,10 +88,17 @@ def test_get_timetable_entries(db):
         )
     ]
     dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
-    entries = crud.get_timetable_entries(db, "AAA", "BBB", dt)
-    assert len(entries) == 1
-    for entry in entries:
-        assert entry.aimed_departure_time.second == 0
-        assert entry.aimed_departure_time.microsecond == 0
-        assert entry.aimed_arrival_time.second == 0
-        assert entry.aimed_arrival_time.microsecond == 0
+    entry = crud.get_earliest_timetable_entry(db, "AAA", "BBB", dt)
+    assert entry is not None
+    assert entry.aimed_departure_time.second == 0
+    assert entry.aimed_departure_time.microsecond == 0
+    assert entry.aimed_arrival_time.second == 0
+    assert entry.aimed_arrival_time.microsecond == 0
+
+    # Test None returned if no entry
+    db.query().filter().order_by().first.return_value = None
+    entry = crud.get_earliest_timetable_entry(db, "AAA", "BBB", dt)
+    assert entry is None
+
+
+# Remove or rename old test_get_timetable_entries if present
