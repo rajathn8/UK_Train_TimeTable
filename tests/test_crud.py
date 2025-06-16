@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from unittest.mock import MagicMock
 
@@ -6,7 +7,6 @@ from sqlalchemy.exc import IntegrityError
 
 from app.uk_train_schedule import crud
 from app.uk_train_schedule.models import TimetableEntry
-import logging
 
 logger = logging.getLogger(__name__)
 
