@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.settings import settings
 
 from .crud import get_earliest_timetable_entry, post_timetable_entry
-from .models import TimetableEntry, truncate_to_minute
+from .models import truncate_to_minute
 
 logger = logging.getLogger(__name__)
 
@@ -295,7 +295,9 @@ def find_earliest_journey(
             fetch_and_store_timetable(
                 db, station_from, station_to, current_time.isoformat(), max_wait
             )
-            entry = get_earliest_timetable_entry(db, station_from, station_to, current_time)
+            entry = get_earliest_timetable_entry(
+                db, station_from, station_to, current_time
+            )
         if not entry:
             logger.warning(
                 f"No trains found for {station_from} to {station_to} after "
