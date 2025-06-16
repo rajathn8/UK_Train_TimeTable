@@ -1,3 +1,8 @@
+"""
+Database models for UK Train Timetable application.
+Defines TimetableEntry and related utilities.
+"""
+
 import logging
 from datetime import datetime
 
@@ -12,9 +17,12 @@ logger = logging.getLogger(__name__)
 class TimetableEntry(Base):
     """
     Represents a single train journey between two stations.
-    Each entry is uniquely identified by its id
-    service_id can be used to distinguish
-    between different trains on the same route and time.
+    Each entry is uniquely identified by its id.
+    - service_id: Unique identifier for the train service
+    - station_from: Departure station code
+    - station_to: Arrival station code
+    - aimed_departure_time: Scheduled departure time in UTC
+    - aimed_arrival_time: Scheduled arrival time in UTC
     """
 
     __tablename__ = "timetable_entries"
@@ -36,7 +44,11 @@ class TimetableEntry(Base):
 
 
 def create_all_tables(db_url=None):
-    """Create all tables in the database if they do not exist."""
+    """
+    Create all tables in the database if they do not exist.
+    Args:
+        db_url (str, optional): Database URL. Uses settings.db_url if None.
+    """
     if db_url is None:
         from app.settings import settings
 
@@ -48,7 +60,13 @@ def create_all_tables(db_url=None):
 
 
 def truncate_to_minute(dt: datetime) -> datetime:
-    """Return a copy of dt with seconds and microseconds set to zero."""
+    """
+    Return a copy of dt with seconds and microseconds set to zero.
+    Args:
+        dt (datetime): Input datetime
+    Returns:
+        datetime: Truncated datetime
+    """
     logger.debug(f"Truncating datetime to minute: {dt}")
     return dt.replace(second=0, microsecond=0)
 

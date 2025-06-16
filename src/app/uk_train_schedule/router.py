@@ -1,3 +1,8 @@
+"""
+Journey planning API router for UK Train Timetable.
+Defines endpoints for journey planning and integrates with controller logic.
+"""
+
 import logging
 
 from fastapi import APIRouter, Depends
@@ -17,8 +22,27 @@ router = APIRouter(prefix="/v1/journey", tags=["journey"])
 # codes and other parameters.
 # Using POST allows us to accept complex input as JSON, which is not practical with GET
 # query parameters.
-@router.post("/", response_model=JourneyResponse, status_code=200)
+@router.post(
+    "/",
+    response_model=JourneyResponse,
+    status_code=200,
+    summary="Plan a journey",
+    description="""
+    Plan a journey using a list of station codes, start time, and max wait.
+    Returns the earliest possible arrival time at the destination.
+    """,
+)
 def journey(req: JourneyRequest, db: Session = Depends(get_db)):
+    """
+    Plan a journey using the provided station codes, start time, and max wait.
+    Args:
+        req (JourneyRequest): Journey planning request
+        db (Session): SQLAlchemy session (dependency)
+    Returns:
+        JourneyResponse: Arrival time at destination
+    Raises:
+        TransportAPIException: If journey planning fails
+    """
     logger.info(f"Journey endpoint called with: {req}")
     try:
         arrival = find_earliest_journey(

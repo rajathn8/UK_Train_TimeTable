@@ -1,3 +1,8 @@
+"""
+CRUD operations for TimetableEntry in the UK Train Timetable application.
+Handles database insertions and queries for train schedules.
+"""
+
 import logging
 from datetime import datetime
 from typing import List
@@ -21,6 +26,15 @@ def post_timetable_entry(
     """
     Add a new timetable entry for a train between two stations.
     Prevents duplicate entries for the same service and departure time.
+    Args:
+        db (Session): SQLAlchemy session
+        service_id (str): Train service ID
+        station_from (str): Departure station code
+        station_to (str): Arrival station code
+        aimed_departure_time (datetime): Scheduled departure time
+        aimed_arrival_time (datetime): Scheduled arrival time
+    Returns:
+        TimetableEntry: The created or existing entry
     """
     aimed_departure_time = truncate_to_minute(aimed_departure_time)
     aimed_arrival_time = truncate_to_minute(aimed_arrival_time)
@@ -54,6 +68,13 @@ def get_timetable_entries(
 ) -> List[TimetableEntry]:
     """
     Get all timetable entries for a route after a given time, ordered by departure.
+    Args:
+        db (Session): SQLAlchemy session
+        station_from (str): Departure station code
+        station_to (str): Arrival station code
+        after_time (datetime): Only entries after this time
+    Returns:
+        List[TimetableEntry]: List of timetable entries
     """
     after_time = truncate_to_minute(after_time)
     logger.info(
