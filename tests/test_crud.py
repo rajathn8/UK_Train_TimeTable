@@ -76,15 +76,14 @@ def test_post_timetable_entry_duplicate(db):
 def test_get_timetable_entries(db):
     """Test get_timetable_entries returns correct entries."""
     logger.info("Testing get_timetable_entries.")
-    db.query().filter().order_by().all.return_value = [
-        TimetableEntry(
-            service_id="svc1",
-            station_from="AAA",
-            station_to="BBB",
-            aimed_departure_time=datetime(2025, 6, 16, 10, 0),
-            aimed_arrival_time=datetime(2025, 6, 16, 11, 0),
-        )
-    ]
+    # Patch .first() instead of .all() for get_earliest_timetable_entry
+    db.query().filter().order_by().first.return_value = TimetableEntry(
+        service_id="svc1",
+        station_from="AAA",
+        station_to="BBB",
+        aimed_departure_time=datetime(2025, 6, 16, 10, 0),
+        aimed_arrival_time=datetime(2025, 6, 16, 11, 0),
+    )
     dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
     entry = crud.get_earliest_timetable_entry(db, "AAA", "BBB", dt)
     assert entry is not None
