@@ -1,9 +1,6 @@
 import logging
 
 from database.session import get_db, get_engine
-import logging
-
-from database.session import get_db, get_engine
 
 logger = logging.getLogger(__name__)
 
