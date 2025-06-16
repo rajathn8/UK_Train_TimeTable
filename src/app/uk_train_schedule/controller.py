@@ -70,13 +70,20 @@ def _fetch_timetable_from_api(
     Raises:
         TransportAPIException: If the API call fails or returns an error status.
     """
+    from datetime import timezone
+
+    if window_start.tzinfo is None:
+        window_start_utc = window_start.replace(tzinfo=timezone.utc)
+    else:
+        window_start_utc = window_start.astimezone(timezone.utc)
+    datetime_str = window_start_utc.strftime("%Y-%m-%dT%H:%M:00Z")
     params = {
         "app_id": settings.app_id,
         "app_key": settings.app_key,
         "live": False,
         "station_detail": "calling_at",
         "train_status": "passenger",
-        "datetime": window_start.isoformat(),
+        "datetime": datetime_str,
         "limit": 1000,
         "calling_at": station_to,
     }
