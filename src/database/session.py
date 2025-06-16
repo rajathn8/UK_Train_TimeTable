@@ -2,6 +2,7 @@ import sqlalchemy
 import contextlib
 from app.settings import settings
 
+
 @contextlib.contextmanager
 def get_engine():
     engine = sqlalchemy.create_engine(settings.db_url)
