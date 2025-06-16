@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .models import TimetableEntry, truncate_to_minute
+from app.uk_train_schedule.models import TimetableEntry, truncate_to_minute
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +21,10 @@ def post_timetable_entry(
     station_to: str,
     aimed_departure_time: datetime,
     aimed_arrival_time: datetime,
-) -> TimetableEntry:
+) -> bool:
     """
     Add a new timetable entry for a train between two stations.
-    Returns the entry object (even if duplicate).
+    Returns True if a new entry was added, False if duplicate.
     """
     aimed_departure_time = truncate_to_minute(aimed_departure_time)
     aimed_arrival_time = truncate_to_minute(aimed_arrival_time)
@@ -39,30 +39,14 @@ def post_timetable_entry(
         db.add(entry)
         db.commit()
         db.refresh(entry)
-        logger.info(
-            f"Added timetable entry: {service_id} - {station_from}->{station_to} |"
-            f"{aimed_departure_time}|"
-        )
-        return entry
+        return True
     except IntegrityError:
         db.rollback()
         logger.warning(
             f"Duplicate timetable entry: {service_id} - {station_from}->{station_to} |"
             f"{aimed_departure_time}|"
         )
-        # Try to fetch the existing entry
-        existing = (
-            db.query(TimetableEntry)
-            .filter_by(
-                service_id=service_id,
-                station_from=station_from,
-                station_to=station_to,
-                aimed_departure_time=aimed_departure_time,
-                aimed_arrival_time=aimed_arrival_time,
-            )
-            .first()
-        )
-        return existing
+        return False
 
 
 def get_earliest_timetable_entry(
