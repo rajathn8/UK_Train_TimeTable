@@ -1,4 +1,4 @@
-from .models import Station, TrainService, TimetableEntry
+from .models import Station, TimetableEntry
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime
@@ -14,18 +14,6 @@ def add_station(db: Session, code: str, name: str) -> Station:
     db.commit()
     db.refresh(station)
     return station
-
-
-def add_train_service(
-    db: Session, service_id: str, operator: str, operator_name: str
-) -> TrainService:
-    service = TrainService(
-        service_id=service_id, operator=operator, operator_name=operator_name
-    )
-    db.add(service)
-    db.commit()
-    db.refresh(service)
-    return service
 
 
 def add_timetable_entry(
