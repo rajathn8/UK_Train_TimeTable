@@ -5,8 +5,6 @@ Includes request and response models with validation.
 
 import logging
 import re
-import logging
-import re
 from datetime import datetime
 from typing import List, Optional
 

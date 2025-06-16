@@ -50,7 +50,6 @@ def test_post_timetable_entry_new(db):
     assert entry.aimed_arrival_time.microsecond == 0
 
 
-
 def test_post_timetable_entry_duplicate(db):
     """Test post_timetable_entry for duplicate entry."""
     logger.info("Testing post_timetable_entry for duplicate entry.")
@@ -72,7 +71,6 @@ def test_post_timetable_entry_duplicate(db):
     assert entry.aimed_departure_time.microsecond == 0
     assert entry.aimed_arrival_time.second == 0
     assert entry.aimed_arrival_time.microsecond == 0
-
 
 
 def test_get_timetable_entries(db):
