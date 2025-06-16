@@ -1,41 +1,36 @@
 # UK Train Timetable API
 
-A FastAPI-based service to fetch, store, and query UK train timetable data using the TransportAPI, with results cached in a SQLite database via SQLAlchemy.
+A production-grade FastAPI application for UK train timetable journey planning, integrating with TransportAPI and using SQLite (SQLAlchemy) for caching and persistence.
 
 ## Features
-- Fetches train timetable data from TransportAPI and caches it in SQLite
-- REST API to find the earliest arrival time for a given route and start time
-- Health check endpoint
-- Modular, production-ready structure
-- Secrets and settings managed via environment variables or `src/app/settings.py`
+- **Journey Planning API**: Find the earliest possible arrival time for a multi-leg UK train journey, given a list of station codes, start time, and maximum wait per leg.
+- **TransportAPI Integration**: Fetches live and scheduled train data from TransportAPI, with robust error/status handling and caching.
+- **Database Caching**: Uses SQLite and SQLAlchemy to cache timetable data, minimizing external API calls and improving performance.
+- **RESTful Endpoints**: Clean, documented endpoints with OpenAPI schema and request/response validation.
+- **Input Validation**: Pydantic schemas enforce correct station code formats, time formats, and wait limits.
+- **Comprehensive Logging**: Info, debug, warning, and error logs throughout the app for observability and debugging.
+- **Robust Error Handling**: All API/database errors are caught and returned with appropriate status codes and messages.
+- **Testing**: Extensive unit and integration tests for all major logic, error scenarios, and API endpoints.
+- **Production-Ready**: Type hints, docstrings, and code style (Black/Flake8) throughout. Dockerfile included.
 
-## Requirements
-- Python 3.12+
-- Poetry
-- TransportAPI account (for `app_id` and `app_key`)
-
-## Setup
-1. **Clone the repository**
-2. **Install dependencies:**
+## Quickstart
+1. **Install dependencies**
    ```sh
    poetry install
    ```
-3. **Set environment variables (optional):**
-   - `app_id` and `app_key` for TransportAPI (defaults are set in `src/app/settings.py`)
-   - `APP_ENV` (default: DEV)
-   - `DB_URL` (default: sqlite:///train_schedule.db)
-   - You can use a `.env` file or export variables in your shell.
-
-4. **Run the app:**
+2. **Set up environment variables** (or edit `src/app/settings.py`):
+   - `app_id`, `app_key` (TransportAPI credentials)
+   - `DB_URL` (default: SQLite)
+3. **Run the app**
    ```sh
    PYTHONPATH=src poetry run python -m main
    ```
    The API will be available at http://localhost:8000
 
 ## API Endpoints
-- `GET /health` — Health check
-- `POST /v1/journey` — Find earliest journey
-  - Request body:
+- `GET /health` — Health check and metadata
+- `POST /v1/journey` — Plan a journey
+  - **Request:**
     ```json
     {
       "station_codes": ["LBG", "SAJ", "NWX", "BXY"],
@@ -43,34 +38,30 @@ A FastAPI-based service to fetch, store, and query UK train timetable data using
       "max_wait": 15
     }
     ```
-  - Response:
+  - **Response:**
     ```json
     {
-      "journey": [
-        {"from": "LBG", "to": "SAJ", "departure": "2025-06-04T07:19:00+01:00", "arrival": "2025-06-04T07:28:00+01:00", "service_id": "..."},
-        ...
-      ],
       "arrival_time": "2025-06-04T08:11:00+01:00"
     }
     ```
 
-## Development
-- Lint: `poetry run flake8 src/`
-- Format: `poetry run black src/`
-- Test: `poetry run pytest`
-
 ## Project Structure
-- `src/app/health/` — Health check endpoint
-- `src/app/uk_train_schedule/` — Journey logic, models, and API
+- `src/app/uk_train_schedule/` — Main journey logic, models, CRUD, controller, and API router
+- `src/app/health/` — Health check endpoint and schema
 - `src/database/session.py` — Database session management
 - `src/app/settings.py` — App settings and secrets
-- `src/main.py` — App entrypoint
+- `src/main.py` — Entrypoint
+- `tests/` — Unit and integration tests (pytest + Behave BDD)
+
+## Development
+- **Lint:** `poetry run flake8 src/`
+- **Format:** `poetry run black src/`
+- **Test:** `poetry run pytest`
 
 ## Notes
-- API keys are set in `src/app/settings.py` by default, but you should override them in production.
-- The database is SQLite by default for easy local development.
-- For production, consider using PostgreSQL and proper secret management.
+- API keys are set in `src/app/settings.py` by default; override in production
+- SQLite is default for local dev; use PostgreSQL for production
+- See code comments and docstrings for further details
 
 ---
-
-For more details, see the code and comments in each module.
+For more, see the code and OpenAPI docs at `/docs` when running the app.
