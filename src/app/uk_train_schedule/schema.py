@@ -15,7 +15,10 @@ class JourneyRequest(BaseModel):
     station_codes: List[str] = Field(
         ..., description="List of three-letter station codes in journey order."
     )
-    start_time: str = Field(..., description="Journey start time in ISO 8601 format.")
+    start_time: str = Field(
+        default_factory=lambda: datetime.now().isoformat(),
+        description="Journey start time in ISO 8601 format.",
+    )
     max_wait: int = Field(
         ..., description="Maximum wait time at any station in minutes."
     )
@@ -33,6 +36,8 @@ class JourneyRequest(BaseModel):
 
     @field_validator("start_time")
     def validate_start_time(v):
+        if not v:
+            v = datetime.now().isoformat()
         try:
             datetime.fromisoformat(v)
         except Exception:
@@ -41,8 +46,8 @@ class JourneyRequest(BaseModel):
 
     @field_validator("max_wait")
     def validate_max_wait(v):
-        if v <= 0 or v > 180:
-            raise ValueError("max_wait must be between 1 and 180 minutes.")
+        if v <= 0 or v > 600:
+            raise ValueError("max_wait must be between 1 and 600 minutes.")
         return v
 
 
