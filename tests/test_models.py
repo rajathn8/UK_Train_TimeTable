@@ -1,10 +1,7 @@
-import logging
 import os
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
-
-logger = logging.getLogger(__name__)
 
 from datetime import datetime
 
@@ -12,7 +9,6 @@ from app.uk_train_schedule.models import TimetableEntry
 
 
 def test_timetable_entry_instantiation():
-    logger.info("Testing TimetableEntry instantiation.")
     entry = TimetableEntry(
         service_id="svc1",
         station_from="AAA",
