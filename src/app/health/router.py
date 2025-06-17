@@ -36,7 +36,7 @@ def health_check() -> HealthResponse:
             .replace("+00:00", "Z"),
             api_version="v1",
             app_name="UK Train Timetable",
-            description="Health check endpoint for the UK Train Timetable API",
+            description="Health check endpoint for the UK Train Timetable API.",
             python_version=sys.version.split()[0],
             os=platform.system(),
             os_version=platform.version(),
