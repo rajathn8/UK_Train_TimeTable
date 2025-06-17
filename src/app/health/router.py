@@ -2,7 +2,6 @@
 Provides API Server status, server time, version, app metadata, and environment info.
 """
 
-import logging
 import os
 import platform
 import sys
@@ -12,8 +11,6 @@ from fastapi import APIRouter
 
 from app.health.exceptions import HealthCheckException
 from app.health.schema import HealthResponse
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -47,8 +44,6 @@ def health_check() -> HealthResponse:
             author="Rajath Rao Web_soltZ <rajathn8@gmail.com>",
             env=os.getenv("APP_ENV", "DEV"),
         )
-        logger.debug(f"HealthResponse: {resp}")
         return resp
     except Exception:
-        logger.exception("Health check failed.")
         raise HealthCheckException()
