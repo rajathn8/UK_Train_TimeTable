@@ -4,7 +4,6 @@ Covers insertions, duplicates, and queries for TimetableEntry.
 Follows best practices for logging, patching, and assertions.
 """
 
-import logging
 from datetime import datetime
 from unittest.mock import MagicMock
 
@@ -13,10 +12,6 @@ from sqlalchemy.exc import IntegrityError
 
 from app.uk_train_schedule import crud
 from app.uk_train_schedule.models import TimetableEntry
-
-logger = logging.getLogger(__name__)
-
-logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -35,7 +30,6 @@ def db():
 
 def test_post_timetable_entry_new(db):
     """Test post_timetable_entry for new entry."""
-    logger.info("Testing post_timetable_entry for new entry.")
     db.query().filter_by().first.return_value = None
     db.add.side_effect = None
     dt_dep = datetime(2025, 6, 16, 10, 0, 42, 123456)
@@ -48,7 +42,6 @@ def test_post_timetable_entry_new(db):
 
 def test_post_timetable_entry_duplicate(db):
     """Test post_timetable_entry for duplicate entry."""
-    logger.info("Testing post_timetable_entry for duplicate entry.")
     db.add.side_effect = IntegrityError("mock", "mock", "mock")
     db.commit.side_effect = IntegrityError("mock", "mock", "mock")
     db.query().filter_by().first.return_value = TimetableEntry(
@@ -67,7 +60,6 @@ def test_post_timetable_entry_duplicate(db):
 
 def test_get_timetable_entries(db):
     """Test get_timetable_entries returns correct entries."""
-    logger.info("Testing get_timetable_entries.")
     # Patch .first() instead of .all() for get_earliest_timetable_entry
     db.query().filter().order_by().first.return_value = TimetableEntry(
         service_id="svc1",

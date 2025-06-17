@@ -4,7 +4,6 @@ Covers all major controller functions, error handling, and edge cases.
 Follows best practices for logging, patching, and assertions.
 """
 
-import logging
 from datetime import datetime, timedelta
 from typing import Any, Generator
 from unittest.mock import MagicMock, patch
@@ -14,8 +13,7 @@ import pytest
 from fastapi import status
 
 from app.uk_train_schedule import controller
-
-logger = logging.getLogger(__name__)
+from app.uk_train_schedule.models import TimetableEntry
 
 
 @pytest.fixture
@@ -27,14 +25,12 @@ def db() -> Generator[Any, None, None]:
 
 def test_parse_time() -> None:
     """Test parsing of date and time strings."""
-    logger.info("Testing parse_time.")
     dt = controller.parse_time("2025-06-16", "10:00")
     assert dt == datetime(2025, 6, 16, 10, 0)
 
 
 def test_timetable_cache_hit_returns_none_on_exception(db: Any) -> None:
     """Test _timetable_cache_hit returns None on DB exception."""
-    logger.info("Testing _timetable_cache_hit returns None on exception.")
     db.query.side_effect = Exception("fail")
     result = controller._timetable_cache_hit(
         db, "AAA", "BBB", datetime.now(), datetime.now()
@@ -44,8 +40,6 @@ def test_timetable_cache_hit_returns_none_on_exception(db: Any) -> None:
 
 def test_fetch_timetable_from_api_malformed(monkeypatch: Any) -> None:
     """Test _fetch_timetable_from_api raises on malformed response."""
-    logger.info("Testing _fetch_timetable_from_api with malformed response.")
-
     class DummyResp:
         def raise_for_status(self) -> None:
             pass
@@ -62,8 +56,6 @@ def test_fetch_timetable_from_api_malformed(monkeypatch: Any) -> None:
 
 def test_fetch_timetable_from_api_timeout(monkeypatch: Any) -> None:
     """Test _fetch_timetable_from_api raises 504 on timeout."""
-    logger.info("Testing _fetch_timetable_from_api timeout.")
-
     class DummyTimeout(Exception):
         pass
 
@@ -79,8 +71,6 @@ def test_fetch_timetable_from_api_timeout(monkeypatch: Any) -> None:
 
 def test_fetch_timetable_from_api_request_error(monkeypatch: Any) -> None:
     """Test _fetch_timetable_from_api raises 502 on request error."""
-    logger.info("Testing _fetch_timetable_from_api request error.")
-
     def raise_request_error(*args, **kwargs):
         raise httpx.RequestError("request error", request=None)
 
@@ -93,8 +83,6 @@ def test_fetch_timetable_from_api_request_error(monkeypatch: Any) -> None:
 
 def test_fetch_timetable_from_api_http_status_error(monkeypatch: Any) -> None:
     """Test _fetch_timetable_from_api raises with actual HTTP status code."""
-    logger.info("Testing _fetch_timetable_from_api HTTP status error.")
-
     class DummyResponse:
         status_code = 403
         text = "Forbidden"
@@ -116,8 +104,6 @@ def test_fetch_timetable_from_api_http_status_error(monkeypatch: Any) -> None:
 
 def test_fetch_timetable_from_api_unexpected_error(monkeypatch: Any) -> None:
     """Test _fetch_timetable_from_api raises 500 on unexpected error."""
-    logger.info("Testing _fetch_timetable_from_api unexpected error.")
-
     def raise_unexpected(*args, **kwargs):
         raise Exception("unexpected")
 
@@ -130,14 +116,12 @@ def test_fetch_timetable_from_api_unexpected_error(monkeypatch: Any) -> None:
 
 def test_store_timetable_entries_handles_no_date(db: Any) -> None:
     """Test _store_timetable_entries handles missing date field."""
-    logger.info("Testing _store_timetable_entries handles no date.")
     controller._store_timetable_entries(db, {}, "AAA", "BBB")
     db.add.assert_not_called()
 
 
 def test_fetch_or_store_timetable_cache_hit(db: Any) -> None:
     """Test fetch_or_store_timetable does not add if cache hit."""
-    logger.info("Testing fetch_or_store_timetable cache hit.")
     with patch.object(controller, "_timetable_cache_hit", return_value=True):
         controller.fetch_or_store_timetable(
             db, "AAA", "BBB", datetime.now().isoformat(), 10
@@ -147,7 +131,6 @@ def test_fetch_or_store_timetable_cache_hit(db: Any) -> None:
 
 def test_find_earliest_journey_no_trains(db: Any) -> None:
     """Test find_earliest_journey raises if no trains found."""
-    logger.info("Testing find_earliest_journey with no trains.")
     db.reset_mock()
     with patch(
         "app.uk_train_schedule.controller.get_earliest_timetable_entry",
@@ -167,7 +150,6 @@ def test_find_earliest_journey_no_trains(db: Any) -> None:
 
 def test_fetch_or_store_timetable_truncates_minute(db: Any) -> None:
     """Test fetch_or_store_timetable truncates to minute precision."""
-    logger.info("Testing fetch_or_store_timetable truncates minute.")
     with patch(
         "app.uk_train_schedule.controller._timetable_cache_hit"
     ) as cache_hit, patch(
@@ -188,7 +170,6 @@ def test_fetch_or_store_timetable_truncates_minute(db: Any) -> None:
 
 def test_find_earliest_journey_truncates_minute(db: Any) -> None:
     """Test find_earliest_journey truncates to minute precision."""
-    logger.info("Testing find_earliest_journey truncates minute.")
     from app.uk_train_schedule.models import TimetableEntry
 
     dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
