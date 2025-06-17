@@ -46,4 +46,4 @@ def health_check() -> HealthResponse:
         )
         return resp
     except Exception:
-        raise HealthCheckException()
+        raise HealthCheckException() from Exception
