@@ -13,7 +13,6 @@ import pytest
 from fastapi import status
 
 from app.uk_train_schedule import controller
-from app.uk_train_schedule.models import TimetableEntry
 
 
 @pytest.fixture
@@ -40,6 +39,7 @@ def test_timetable_cache_hit_returns_none_on_exception(db: Any) -> None:
 
 def test_fetch_timetable_from_api_malformed(monkeypatch: Any) -> None:
     """Test _fetch_timetable_from_api raises on malformed response."""
+
     class DummyResp:
         def raise_for_status(self) -> None:
             pass
@@ -56,6 +56,7 @@ def test_fetch_timetable_from_api_malformed(monkeypatch: Any) -> None:
 
 def test_fetch_timetable_from_api_timeout(monkeypatch: Any) -> None:
     """Test _fetch_timetable_from_api raises 504 on timeout."""
+
     class DummyTimeout(Exception):
         pass
 
@@ -71,6 +72,7 @@ def test_fetch_timetable_from_api_timeout(monkeypatch: Any) -> None:
 
 def test_fetch_timetable_from_api_request_error(monkeypatch: Any) -> None:
     """Test _fetch_timetable_from_api raises 502 on request error."""
+
     def raise_request_error(*args, **kwargs):
         raise httpx.RequestError("request error", request=None)
 
@@ -83,6 +85,7 @@ def test_fetch_timetable_from_api_request_error(monkeypatch: Any) -> None:
 
 def test_fetch_timetable_from_api_http_status_error(monkeypatch: Any) -> None:
     """Test _fetch_timetable_from_api raises with actual HTTP status code."""
+
     class DummyResponse:
         status_code = 403
         text = "Forbidden"
@@ -104,6 +107,7 @@ def test_fetch_timetable_from_api_http_status_error(monkeypatch: Any) -> None:
 
 def test_fetch_timetable_from_api_unexpected_error(monkeypatch: Any) -> None:
     """Test _fetch_timetable_from_api raises 500 on unexpected error."""
+
     def raise_unexpected(*args, **kwargs):
         raise Exception("unexpected")
 
