@@ -4,7 +4,7 @@ Handles database insertions and queries for train schedules.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -26,6 +26,15 @@ def post_timetable_entry(
     Add a new timetable entry for a train between two stations.
     Returns True if a new entry was added, False if duplicate.
     """
+    # Ensure all datetimes are timezone-aware and in UTC
+    if aimed_departure_time.tzinfo is None:
+        aimed_departure_time = aimed_departure_time.replace(tzinfo=timezone.utc)
+    else:
+        aimed_departure_time = aimed_departure_time.astimezone(timezone.utc)
+    if aimed_arrival_time.tzinfo is None:
+        aimed_arrival_time = aimed_arrival_time.replace(tzinfo=timezone.utc)
+    else:
+        aimed_arrival_time = aimed_arrival_time.astimezone(timezone.utc)
     entry = TimetableEntry(
         service_id=service_id,
         station_from=station_from,
@@ -60,16 +69,30 @@ def get_earliest_timetable_entry(
     Returns:
         TimetableEntry | None: The earliest timetable entry or None if not found
     """
-    logger.info(
-        f"Fetching earliest timetable entry: {station_from}->{station_to} after {after_time}"
-    )
-    return (
+    # Truncate seconds and microseconds for time comparison
+    if after_time.tzinfo is None:
+        after_time = after_time.replace(tzinfo=timezone.utc)
+    else:
+        after_time = after_time.astimezone(timezone.utc)
+    after_time_trunc = after_time.replace(second=0, microsecond=0)
+    entry = (
         db.query(TimetableEntry)
         .filter(
             TimetableEntry.station_from == station_from,
             TimetableEntry.station_to == station_to,
-            TimetableEntry.aimed_departure_time >= after_time,
+            TimetableEntry.aimed_departure_time >= after_time_trunc,
         )
         .order_by(TimetableEntry.aimed_departure_time)
         .first()
     )
+
+    if entry:
+        if entry.aimed_departure_time.tzinfo is None:
+            entry.aimed_departure_time = entry.aimed_departure_time.replace(
+                tzinfo=timezone.utc
+            )
+        if entry.aimed_arrival_time.tzinfo is None:
+            entry.aimed_arrival_time = entry.aimed_arrival_time.replace(
+                tzinfo=timezone.utc
+            )
+    return entry

@@ -59,8 +59,9 @@ def _timetable_cache_hit(
     try:
         # Use the CRUD function, but filter for window_end as well
         entry = get_earliest_timetable_entry(db, station_from, station_to, window_start)
-        if entry and entry.aimed_departure_time < window_end:
-            return entry
+        if entry:
+            if window_start <= entry.aimed_departure_time < window_end:
+                return entry
         return None
     except Exception as exc:
         logger.error(

@@ -2,7 +2,14 @@
 Defines TimetableEntry and related utilities.
 """
 
-from sqlalchemy import Column, DateTime, Integer, String, create_engine
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Integer,
+    String,
+    UniqueConstraint,
+    create_engine,
+)
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -20,20 +27,28 @@ class TimetableEntry(Base):
     """
 
     __tablename__ = "timetable_entries"
+    __table_args__ = (
+        UniqueConstraint(
+            "service_id",
+            "station_from",
+            "station_to",
+            "aimed_departure_time",
+            name="uix_service_station_departure_time",
+        ),
+    )
     id = Column(Integer, primary_key=True, doc="Primary key")
     service_id = Column(
         String,
-        unique=True,
         nullable=False,
         doc="Unique identifier for the train service",
     )
     station_from = Column(String, nullable=False, doc="Departure station code")
     station_to = Column(String, nullable=False, doc="Arrival station code")
     aimed_departure_time = Column(
-        DateTime, nullable=False, doc="Scheduled departure time in UTC"
+        DateTime(timezone=True), nullable=False, doc="Scheduled departure time in UTC"
     )
     aimed_arrival_time = Column(
-        DateTime, nullable=False, doc="Scheduled arrival time in UTC"
+        DateTime(timezone=True), nullable=False, doc="Scheduled arrival time in UTC"
     )
 
 
