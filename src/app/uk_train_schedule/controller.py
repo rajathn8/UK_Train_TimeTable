@@ -16,7 +16,6 @@ from app.uk_train_schedule.crud import (
     get_earliest_timetable_entry,
     post_timetable_entry,
 )
-from app.uk_train_schedule.models import truncate_to_minute
 
 logger = logging.getLogger(__name__)
 
@@ -224,7 +223,7 @@ def fetch_or_store_timetable(
     Fetch and cache timetable data for a given station pair and time window.
     If a cached entry exists, return it. Otherwise, fetch from the API, store, and return the new entry.
     """
-    window_start = truncate_to_minute(datetime.fromisoformat(starting_time))
+    window_start = datetime.fromisoformat(starting_time)
     window_end = window_start + timedelta(minutes=max_wait)
     cache_entry = _timetable_cache_hit(
         db, station_from, station_to, window_start, window_end
@@ -256,7 +255,7 @@ def find_earliest_journey(
     logger.info(
         f"Finding earliest journey for {station_codes} from {start_time} with max_wait {max_wait}"
     )
-    current_time = truncate_to_minute(datetime.fromisoformat(start_time))
+    current_time = datetime.fromisoformat(start_time)
     for station_from, station_to in zip(station_codes, station_codes[1:]):
         entry = fetch_or_store_timetable(
             db, station_from, station_to, current_time.isoformat(), max_wait

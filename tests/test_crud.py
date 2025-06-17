@@ -40,14 +40,10 @@ def test_post_timetable_entry_new(db):
     db.add.side_effect = None
     dt_dep = datetime(2025, 6, 16, 10, 0, 42, 123456)
     dt_arr = datetime(2025, 6, 16, 11, 0, 59, 999999)
-    entry = crud.post_timetable_entry(db, "svc1", "AAA", "BBB", dt_dep, dt_arr)
+    result = crud.post_timetable_entry(db, "svc1", "AAA", "BBB", dt_dep, dt_arr)
     db.add.assert_called()
     db.commit.assert_called()
-    assert entry is not None
-    assert entry.aimed_departure_time.second == 0
-    assert entry.aimed_departure_time.microsecond == 0
-    assert entry.aimed_arrival_time.second == 0
-    assert entry.aimed_arrival_time.microsecond == 0
+    assert result is True
 
 
 def test_post_timetable_entry_duplicate(db):
@@ -64,13 +60,9 @@ def test_post_timetable_entry_duplicate(db):
     )
     dt_dep = datetime(2025, 6, 16, 10, 0, 42, 123456)
     dt_arr = datetime(2025, 6, 16, 11, 0, 59, 999999)
-    entry = crud.post_timetable_entry(db, "svc1", "AAA", "BBB", dt_dep, dt_arr)
+    result = crud.post_timetable_entry(db, "svc1", "AAA", "BBB", dt_dep, dt_arr)
     db.rollback.assert_called()
-    assert entry is not None
-    assert entry.aimed_departure_time.second == 0
-    assert entry.aimed_departure_time.microsecond == 0
-    assert entry.aimed_arrival_time.second == 0
-    assert entry.aimed_arrival_time.microsecond == 0
+    assert result is False
 
 
 def test_get_timetable_entries(db):

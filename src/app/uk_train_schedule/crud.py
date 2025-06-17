@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.uk_train_schedule.models import TimetableEntry, truncate_to_minute
+from app.uk_train_schedule.models import TimetableEntry
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +26,6 @@ def post_timetable_entry(
     Add a new timetable entry for a train between two stations.
     Returns True if a new entry was added, False if duplicate.
     """
-    aimed_departure_time = truncate_to_minute(aimed_departure_time)
-    aimed_arrival_time = truncate_to_minute(aimed_arrival_time)
     entry = TimetableEntry(
         service_id=service_id,
         station_from=station_from,
@@ -62,7 +60,6 @@ def get_earliest_timetable_entry(
     Returns:
         TimetableEntry | None: The earliest timetable entry or None if not found
     """
-    after_time = truncate_to_minute(after_time)
     logger.info(
         f"Fetching earliest timetable entry: {station_from}->{station_to} after {after_time}"
     )

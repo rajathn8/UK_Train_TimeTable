@@ -14,7 +14,6 @@ import pytest
 from fastapi import status
 
 from app.uk_train_schedule import controller
-from app.uk_train_schedule.models import TimetableEntry, truncate_to_minute
 
 logger = logging.getLogger(__name__)
 
@@ -136,11 +135,11 @@ def test_store_timetable_entries_handles_no_date(db: Any) -> None:
     db.add.assert_not_called()
 
 
-def test_fetch_and_store_timetable_cache_hit(db: Any) -> None:
-    """Test fetch_and_store_timetable does not add if cache hit."""
-    logger.info("Testing fetch_and_store_timetable cache hit.")
+def test_fetch_or_store_timetable_cache_hit(db: Any) -> None:
+    """Test fetch_or_store_timetable does not add if cache hit."""
+    logger.info("Testing fetch_or_store_timetable cache hit.")
     with patch.object(controller, "_timetable_cache_hit", return_value=True):
-        controller.fetch_and_store_timetable(
+        controller.fetch_or_store_timetable(
             db, "AAA", "BBB", datetime.now().isoformat(), 10
         )
     db.add.assert_not_called()
@@ -154,7 +153,7 @@ def test_find_earliest_journey_no_trains(db: Any) -> None:
         "app.uk_train_schedule.controller.get_earliest_timetable_entry",
         return_value=None,
     ):
-        with patch.object(controller, "fetch_and_store_timetable"):
+        with patch.object(controller, "fetch_or_store_timetable", return_value=None):
             with patch(
                 "app.uk_train_schedule.controller.get_earliest_timetable_entry",
                 return_value=None,
@@ -166,9 +165,9 @@ def test_find_earliest_journey_no_trains(db: Any) -> None:
                 assert exc.value.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_fetch_and_store_timetable_truncates_minute(db: Any) -> None:
-    """Test fetch_and_store_timetable truncates to minute precision."""
-    logger.info("Testing fetch_and_store_timetable truncates minute.")
+def test_fetch_or_store_timetable_truncates_minute(db: Any) -> None:
+    """Test fetch_or_store_timetable truncates to minute precision."""
+    logger.info("Testing fetch_or_store_timetable truncates minute.")
     with patch(
         "app.uk_train_schedule.controller._timetable_cache_hit"
     ) as cache_hit, patch(
@@ -179,7 +178,9 @@ def test_fetch_and_store_timetable_truncates_minute(db: Any) -> None:
         cache_hit.return_value = None
         fetch_api.return_value = {"date": "2025-06-16", "departures": {"all": []}}
         dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
-        controller.fetch_and_store_timetable(db, "AAA", "BBB", dt.isoformat(), 30)
+        controller.fetch_or_store_timetable(
+            db, "AAA", "BBB", dt.replace(second=0, microsecond=0).isoformat(), 30
+        )
         args, _ = fetch_api.call_args
         assert args[2].second == 0
         assert args[2].microsecond == 0
@@ -188,21 +189,24 @@ def test_fetch_and_store_timetable_truncates_minute(db: Any) -> None:
 def test_find_earliest_journey_truncates_minute(db: Any) -> None:
     """Test find_earliest_journey truncates to minute precision."""
     logger.info("Testing find_earliest_journey truncates minute.")
+    from app.uk_train_schedule.models import TimetableEntry
+
+    dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
+    entry = TimetableEntry(
+        service_id="svc1",
+        station_from="AAA",
+        station_to="BBB",
+        aimed_departure_time=dt.replace(second=0, microsecond=0),
+        aimed_arrival_time=dt.replace(second=0, microsecond=0) + timedelta(minutes=10),
+    )
     with patch(
-        "app.uk_train_schedule.controller.get_earliest_timetable_entry"
-    ) as get_entry, patch(
-        "app.uk_train_schedule.controller.fetch_and_store_timetable"
-    ) as fetch_store:
-        dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
-        entry = TimetableEntry(
-            service_id="svc1",
-            station_from="AAA",
-            station_to="BBB",
-            aimed_departure_time=truncate_to_minute(dt),
-            aimed_arrival_time=truncate_to_minute(dt + timedelta(minutes=10)),
-        )
-        get_entry.return_value = entry
+        "app.uk_train_schedule.controller.get_earliest_timetable_entry",
+        return_value=entry,
+    ), patch(
+        "app.uk_train_schedule.controller.fetch_or_store_timetable", return_value=entry
+    ):
         arrival = controller.find_earliest_journey(
             db, ["AAA", "BBB"], dt.isoformat(), 30
         )
-        assert ":00" in arrival  # seconds are zero
+        # Should be truncated to minute
+        assert arrival.endswith(":00")

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 from datetime import datetime
 
-from app.uk_train_schedule.models import TimetableEntry, truncate_to_minute
+from app.uk_train_schedule.models import TimetableEntry
 
 
 def test_timetable_entry_instantiation():
@@ -29,12 +29,3 @@ def test_timetable_entry_instantiation():
     assert entry.aimed_departure_time.microsecond == 0
     assert entry.aimed_arrival_time.second == 0
     assert entry.aimed_arrival_time.microsecond == 0
-
-
-def test_truncate_to_minute():
-    logger.info("Testing truncate_to_minute function.")
-    dt = datetime(2025, 6, 16, 10, 5, 42, 123456)
-    truncated = truncate_to_minute(dt)
-    assert truncated.second == 0
-    assert truncated.microsecond == 0
-    assert truncated.minute == 5
