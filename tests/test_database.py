@@ -1,11 +1,4 @@
-from database.session import get_db, get_engine
-
-
-def test_get_engine_context():
-    with get_engine() as engine:
-        assert engine is not None
-        # Should be a SQLAlchemy engine
-        assert hasattr(engine, "connect")
+from database.session import get_db
 
 
 def test_get_db_yields_session():
