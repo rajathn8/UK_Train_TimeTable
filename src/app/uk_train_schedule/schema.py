@@ -3,14 +3,11 @@ Pydantic schemas for journey planning API.
 Includes request and response models with validation.
 """
 
-import logging
 import re
 from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
-
-logger = logging.getLogger(__name__)
 
 
 class JourneyRequest(BaseModel):
@@ -35,7 +32,6 @@ class JourneyRequest(BaseModel):
 
     @field_validator("station_codes")
     def validate_station_codes(v):
-        logger.debug(f"Validating station_codes: {v}")
         if not v or len(v) < 2:
             raise ValueError("At least two station codes are required.")
         for code in v:
@@ -47,7 +43,6 @@ class JourneyRequest(BaseModel):
 
     @field_validator("start_time")
     def validate_start_time(v):
-        logger.debug(f"Validating start_time: {v}")
         if not v:
             v = datetime.now().isoformat()
         try:
@@ -58,7 +53,6 @@ class JourneyRequest(BaseModel):
 
     @field_validator("max_wait")
     def validate_max_wait(v):
-        logger.debug(f"Validating max_wait: {v}")
         if v <= 0 or v > 600:
             raise ValueError("max_wait must be between 1 and 600 minutes.")
         return v

@@ -3,8 +3,6 @@ Journey planning API router for UK Train Timetable.
 Defines endpoints for journey planning and integrates with controller logic.
 """
 
-import logging
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -12,8 +10,6 @@ from database.session import get_db
 
 from .controller import TransportAPIException, find_earliest_journey
 from .schema import JourneyRequest, JourneyResponse
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/journey", tags=["journey"])
 
@@ -47,8 +43,6 @@ def journey(req: JourneyRequest, db: Session = Depends(get_db)):
         arrival = find_earliest_journey(
             db, req.station_codes, req.start_time, req.max_wait
         )
-        logger.info(f"Journey found, arrival time: {arrival}")
         return JourneyResponse(arrival_time=arrival)
     except TransportAPIException as exc:
-        logger.warning(f"Journey planning failed: {exc.detail}")
         raise exc

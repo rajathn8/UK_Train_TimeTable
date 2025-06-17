@@ -2,14 +2,10 @@
 Defines TimetableEntry and related utilities.
 """
 
-import logging
-
 from sqlalchemy import Column, DateTime, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
-
-logger = logging.getLogger(__name__)
 
 
 class TimetableEntry(Base):
@@ -50,9 +46,7 @@ def create_all_tables(db_url=None):
 
         db_url = settings.db_url
     engine = create_engine(db_url)
-    logger.info(f"Creating all tables in the database: {db_url}")
     Base.metadata.create_all(engine)
-    logger.info("All tables created or already exist.")
 
 
 """

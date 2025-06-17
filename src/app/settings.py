@@ -2,10 +2,8 @@ import logging
 
 from pydantic_settings import BaseSettings
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
+from app.uk_train_schedule.models import create_all_tables
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,8 +25,6 @@ logger.info("Starting Raj - UK train timetable")
 
 # Automatically create all tables on startup
 try:
-    from app.uk_train_schedule.models import create_all_tables
-
     create_all_tables(settings.db_url)
     logger.info("Database tables checked/created on startup.")
 except Exception as e:
