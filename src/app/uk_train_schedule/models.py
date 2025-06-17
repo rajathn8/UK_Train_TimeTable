@@ -3,7 +3,6 @@ Defines TimetableEntry and related utilities.
 """
 
 import logging
-from datetime import datetime
 
 from sqlalchemy import Column, DateTime, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base
@@ -54,14 +53,6 @@ def create_all_tables(db_url=None):
     logger.info(f"Creating all tables in the database: {db_url}")
     Base.metadata.create_all(engine)
     logger.info("All tables created or already exist.")
-
-
-def truncate_to_minute(dt: datetime) -> datetime:
-    """
-    Return a copy of dt with seconds and microseconds set to zero.
-    """
-    logger.debug(f"Truncating datetime to minute: {dt}")
-    return dt.replace(second=0, microsecond=0)
 
 
 """
