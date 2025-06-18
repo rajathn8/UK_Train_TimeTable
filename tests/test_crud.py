@@ -1,10 +1,4 @@
-"""
-Production-grade tests for CRUD operations in UK Train Timetable application.
-Covers insertions, duplicates, and queries for TimetableEntry.
-Follows best practices for logging, patching, and assertions.
-"""
-
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,70 +10,65 @@ from app.uk_train_schedule.models import TimetableEntry
 
 @pytest.fixture
 def db():
-    """Fixture for a mock database session."""
     db = MagicMock()
     db.query().filter_by().first.return_value = TimetableEntry(
         service_id="svc1",
         station_from="AAA",
         station_to="BBB",
-        aimed_departure_time=datetime(2025, 6, 16, 10, 0),
-        aimed_arrival_time=datetime(2025, 6, 16, 11, 0),
+        aimed_departure_time=datetime(2025, 6, 16, 10, 0, tzinfo=timezone.utc),
+        aimed_arrival_time=datetime(2025, 6, 16, 11, 0, tzinfo=timezone.utc),
     )
     return db
 
 
 def test_post_timetable_entry_new(db):
-    """Test post_timetable_entry for new entry."""
     db.query().filter_by().first.return_value = None
     db.add.side_effect = None
-    dt_dep = datetime(2025, 6, 16, 10, 0, 42, 123456)
-    dt_arr = datetime(2025, 6, 16, 11, 0, 59, 999999)
-    result = crud.post_timetable_entry(db, "svc1", "AAA", "BBB", dt_dep, dt_arr)
+    dt_dep = datetime(2025, 6, 16, 10, 0, 42, 123456, tzinfo=timezone.utc)
+    dt_arr = datetime(2025, 6, 16, 11, 0, 59, 999999, tzinfo=timezone.utc)
+    assert crud.post_timetable_entry(db, "svc1", "AAA", "BBB", dt_dep, dt_arr)
     db.add.assert_called()
     db.commit.assert_called()
-    assert result is True
 
 
 def test_post_timetable_entry_duplicate(db):
-    """Test post_timetable_entry for duplicate entry."""
     db.add.side_effect = IntegrityError("mock", "mock", "mock")
     db.commit.side_effect = IntegrityError("mock", "mock", "mock")
     db.query().filter_by().first.return_value = TimetableEntry(
         service_id="svc1",
         station_from="AAA",
         station_to="BBB",
-        aimed_departure_time=datetime(2025, 6, 16, 10, 0),
-        aimed_arrival_time=datetime(2025, 6, 16, 11, 0),
+        aimed_departure_time=datetime(2025, 6, 16, 10, 0, tzinfo=timezone.utc),
+        aimed_arrival_time=datetime(2025, 6, 16, 11, 0, tzinfo=timezone.utc),
     )
-    dt_dep = datetime(2025, 6, 16, 10, 0, 42, 123456)
-    dt_arr = datetime(2025, 6, 16, 11, 0, 59, 999999)
-    result = crud.post_timetable_entry(db, "svc1", "AAA", "BBB", dt_dep, dt_arr)
+    dt_dep = datetime(2025, 6, 16, 10, 0, 42, 123456, tzinfo=timezone.utc)
+    dt_arr = datetime(2025, 6, 16, 11, 0, 59, 999999, tzinfo=timezone.utc)
+    assert not crud.post_timetable_entry(db, "svc1", "AAA", "BBB", dt_dep, dt_arr)
     db.rollback.assert_called()
-    assert result is False
 
 
 def test_get_timetable_entries(db):
-    """Test get_timetable_entries returns correct entries."""
-    # Patch .first() instead of .all() for get_earliest_timetable_entry
     db.query().filter().order_by().first.return_value = TimetableEntry(
         service_id="svc1",
         station_from="AAA",
         station_to="BBB",
-        aimed_departure_time=datetime(2025, 6, 16, 10, 0),
-        aimed_arrival_time=datetime(2025, 6, 16, 11, 0),
+        aimed_departure_time=datetime(2025, 6, 16, 10, 0, tzinfo=timezone.utc),
+        aimed_arrival_time=datetime(2025, 6, 16, 11, 0, tzinfo=timezone.utc),
     )
-    dt = datetime(2025, 6, 16, 10, 0, 42, 123456)
+    dt = datetime(2025, 6, 16, 10, 0, 42, 123456, tzinfo=timezone.utc)
     entry = crud.get_earliest_timetable_entry(db, "AAA", "BBB", dt)
-    assert entry is not None
-    assert entry.aimed_departure_time.second == 0
-    assert entry.aimed_departure_time.microsecond == 0
-    assert entry.aimed_arrival_time.second == 0
-    assert entry.aimed_arrival_time.microsecond == 0
-
-    # Test None returned if no entry
+    assert (
+        entry
+        and entry.aimed_departure_time.tzinfo == timezone.utc
+        and entry.aimed_arrival_time.tzinfo == timezone.utc
+    )
+    assert (
+        entry.aimed_departure_time.second == 0
+        and entry.aimed_departure_time.microsecond == 0
+    )
+    assert (
+        entry.aimed_arrival_time.second == 0
+        and entry.aimed_arrival_time.microsecond == 0
+    )
     db.query().filter().order_by().first.return_value = None
-    entry = crud.get_earliest_timetable_entry(db, "AAA", "BBB", dt)
-    assert entry is None
-
-
-# Remove or rename old test_get_timetable_entries if present
+    assert crud.get_earliest_timetable_entry(db, "AAA", "BBB", dt) is None

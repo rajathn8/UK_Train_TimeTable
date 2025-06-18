@@ -1,8 +1,9 @@
 import logging
 
 from pydantic_settings import BaseSettings
+from sqlalchemy import create_engine
 
-from app.uk_train_schedule.models import create_all_tables
+from app.uk_train_schedule.models import Base
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,6 @@ class Settings(BaseSettings):
     app_key: str = "your_api_key_here"
     db_url: str = "sqlite:///train_schedule.db"
     env: str = "DEV"
-
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
@@ -21,11 +21,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-logger.info("Starting Raj - UK train timetable")
 
-# Automatically create all tables on startup
 try:
-    create_all_tables(settings.db_url)
-    logger.info("Database tables checked/created on startup.")
+    engine = create_engine(settings.db_url)
+    Base.metadata.create_all(engine)
 except Exception as e:
     logger.error(f"Failed to create tables on startup: {e}")
