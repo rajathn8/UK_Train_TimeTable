@@ -80,10 +80,6 @@ def get_earliest_timetable_entry(
         .order_by(TimetableEntry.aimed_departure_time)
         .first()
     )
-<<<<<<< feature/raj_sde_4
-=======
-
->>>>>>> main
     if entry:
         if entry.aimed_departure_time.tzinfo is None:
             entry.aimed_departure_time = entry.aimed_departure_time.replace(
