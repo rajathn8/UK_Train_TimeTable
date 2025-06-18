@@ -1,7 +1,3 @@
-"""
-Custom exceptions for the health module
-"""
-
 from fastapi import HTTPException
 
 

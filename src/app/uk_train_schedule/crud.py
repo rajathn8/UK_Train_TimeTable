@@ -60,12 +60,7 @@ def get_earliest_timetable_entry(
     db: Session, station_from: str, station_to: str, after_time: datetime
 ) -> TimetableEntry | None:
     """
-    Get the earliest timetable entry for a route after a given time, ordered by departure.
-    Args:
-        db (Session): SQLAlchemy session
-        station_from (str): Departure station code
-        station_to (str): Arrival station code
-        after_time (datetime): Only entries after this time
+    Get the earliest timetable entry for a route after a given time, ordered by departure
     Returns:
         TimetableEntry | None: The earliest timetable entry or None if not found
     """
@@ -85,7 +80,6 @@ def get_earliest_timetable_entry(
         .order_by(TimetableEntry.aimed_departure_time)
         .first()
     )
-
     if entry:
         if entry.aimed_departure_time.tzinfo is None:
             entry.aimed_departure_time = entry.aimed_departure_time.replace(
